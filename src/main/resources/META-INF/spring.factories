@@ -1,0 +1,1 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=tech.codingless.core.gateway.conf.GatewayConf
