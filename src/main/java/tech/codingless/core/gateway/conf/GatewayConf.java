@@ -1,11 +1,13 @@
 package tech.codingless.core.gateway.conf;
 
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 import tech.codingless.core.gateway.interceptor.GatewayInterceptor;
 import tech.codingless.core.gateway.interceptor.WrapRequestFilter;
 import tech.codingless.core.gateway.stat.GatewayStatController;
 
+@Configuration
 public class GatewayConf {
 
 	@Bean
@@ -33,4 +35,6 @@ public class GatewayConf {
 	public WrapRequestFilter initWrapRequestFilter() { 
 		return new WrapRequestFilter();
 	}
+ 
+ 
 }

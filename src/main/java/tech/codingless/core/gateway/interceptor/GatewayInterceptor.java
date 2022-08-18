@@ -11,6 +11,7 @@ import org.springframework.web.servlet.AsyncHandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSONObject;
 
 import lombok.extern.slf4j.Slf4j;
 import tech.codingless.core.gateway.annotation.GrantModuleCondition;
@@ -21,6 +22,7 @@ import tech.codingless.core.gateway.data.MyMemoryAnalysisFlag;
 import tech.codingless.core.gateway.helper.AccessKeyHelper;
 import tech.codingless.core.gateway.helper.AccessKeyHelper.AccessKey;
 import tech.codingless.core.gateway.util.SHAUtil;
+import tech.codingless.core.gateway.util.SessionUtil;
 import tech.codingless.core.gateway.util.SignUtil;
 import tech.codingless.core.gateway.util.StringUtil;
 
@@ -29,9 +31,14 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 	private static final String ACCESS_KEY = "Access-Key";
 	private static final String ACCESS_TIMESTAMP = "Access-Timestamp";
 	private static final String ACCESS_SIGN = "Access-Sign";
+	private static final String X_REAL_IP = "X-Real-IP";
+	
+	
+	
 
 	private static final ThreadLocal<MyMemoryAnalysisFlag> flag = new ThreadLocal<MyMemoryAnalysisFlag>();
-	private static final ThreadLocal<Long> t = new ThreadLocal<>();
+	private static final ThreadLocal<Long> t = new ThreadLocal<>(); 
+	private static final ThreadLocal<Boolean> DISABLE_RESPONSE_LOG = new ThreadLocal<>(); 
 	private static final ThreadLocal<String> REQUEST_BODY=new ThreadLocal<String>(); 
 
 	@Override
@@ -42,14 +49,21 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 		try {
+			if(!(handler  instanceof HandlerMethod)) {
+				return AsyncHandlerInterceptor.super.preHandle(request, response, handler); 
+			}
+			clearSession();
 			t.set(System.currentTimeMillis());
 			HandlerMethod handlerMethod = (HandlerMethod) handler;
 			MyBiz myBiz = handlerMethod.getMethodAnnotation(MyBiz.class);
+			if(myBiz!=null) {
+				DISABLE_RESPONSE_LOG.set(myBiz.disableResponseLog());
+			}
 			String requestId = StringUtil.genGUID();
 			response.addHeader("Request-Id", requestId);
 			flag.set(new MyMemoryAnalysisFlag("REQ:" + request.getRequestURL().toString(), requestId));
 			
-			
+			REQUEST_BODY.remove();
 			//检查认证
 			MyAccessKeyAuth myAccessKeyAuth = handlerMethod.getMethodAnnotation(MyAccessKeyAuth.class);
 			if(myAccessKeyAuth!=null) {
@@ -69,6 +83,7 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 					return false; 
 				}
 				 
+				
 				if (!accessKey.isReadAble(moduleName) && !accessKey.isWriteAble(moduleName)) {
 					response.setHeader(MyAuth.UNAUTHORIZED_MSG, "1");
 					response.sendError(MyAuth.UNAUTHORIZED_CODE);
@@ -120,9 +135,8 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 			return AsyncHandlerInterceptor.super.preHandle(request, response, handler);
 
 		} catch (Throwable e) {
-
-		} finally {
-			clearSession(); 
+			log.error("error",e);
+		} finally { 
 		}
 		return false;
 	}
@@ -131,21 +145,36 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 		flag.remove();
 		MyAccessKeyAuth.CURRENT_COMPANY_ID.remove();
 		MyAccessKeyAuth.ACCESS_KEY.remove();
+		REQUEST_BODY.remove();
 	}
 
 	@Override
 	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
 
 		try {
-			StringBuilder str = new StringBuilder();
-			str.append("REQ ").append(request.getMethod());
-			str.append("\tcost:").append(System.currentTimeMillis() - t.get());
-			str.append("\turl:").append(request.getRequestURL().toString());
-			str.append("\tparam:").append(JSON.toJSONString(request.getParameterMap()));
-			str.append("\tresponse:").append("xxx"); 
+			
+			JSONObject req = new JSONObject(); 
+			req.put("ip", request.getHeader(X_REAL_IP));
+			req.put("t", System.currentTimeMillis());
+			req.put("method", request.getMethod());
+			req.put("companyId", MyAccessKeyAuth.CURRENT_COMPANY_ID.get());
+			req.put("access_key", MyAccessKeyAuth.ACCESS_KEY.get());
+			req.put("cost", System.currentTimeMillis() - t.get());
+			req.put("uri", request.getRequestURI());
+			req.put("url_param", JSON.toJSONString(request.getParameterMap()));
+			if("POST".equalsIgnoreCase(request.getMethod())&&"application/json".equalsIgnoreCase(request.getContentType()) && request instanceof BodyReaderHttpServletRequestWrapper) {
+				req.put("req_body", JSON.toJSONString(request.getParameterMap()));
+			} 
+			if(BooleanUtils.isNotTrue(DISABLE_RESPONSE_LOG.get())) {
+				req.put("response", SessionUtil.CURRENT_RESPONSE.get());
+			} 
+			StringBuilder str = new StringBuilder(); 
+			str.append("REQUEST_INFO:").append(req); 
 			log.info(str.toString());
 		} catch (Throwable e) {
 
+		}finally {
+			clearSession();
 		}
 
 		AsyncHandlerInterceptor.super.afterCompletion(request, response, handler, ex);
