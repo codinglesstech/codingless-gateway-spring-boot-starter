@@ -9,6 +9,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.NestedServletException;
@@ -45,6 +46,9 @@ public class WrapRequestFilter implements Filter {
 				GatewayResponse resp = new GatewayResponse();
 				String [] msg = cause.getMessage().split(":");
 				resp.fail(msg[0], msg.length==2?msg[1]:cause.getMessage());
+				if(response instanceof HttpServletResponse) {
+					((HttpServletResponse)response).addHeader("Content-Type", "application/json");
+				}
 				response.getWriter().write(JSON.toJSONString(resp));
 			} 
 			
