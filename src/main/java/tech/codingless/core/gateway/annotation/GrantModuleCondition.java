@@ -1,13 +1,17 @@
 package tech.codingless.core.gateway.annotation;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 
+import tech.codingless.core.gateway.conf.ModuleConf;
 import tech.codingless.core.gateway.util.InstallEvnUtl;
-import tech.codingless.core.gateway.util.ModuleUtil;
  
 
 /**
@@ -17,34 +21,48 @@ import tech.codingless.core.gateway.util.ModuleUtil;
  * @version  2021年10月22日
  */
 public class GrantModuleCondition implements Condition {
-	private static final Logger LOG = LoggerFactory.getLogger(GrantModuleCondition.class);
-	private static final String GRANT_PREFIX="tech.codingless.biz.module.";
-	private static final String ENABLE="true";
-	
+	private static final Logger LOG = LoggerFactory.getLogger(GrantModuleCondition.class); 
+	ModuleConf conf;
+	//加载信息
+	private static Map<String,Boolean> MODULE_LOADED=new HashMap<String,Boolean>();
+	private static Map<String,String> MODULE_NAME=new HashMap<String,String>();
+	private static ConcurrentHashMap<Class<?>, String> CLASS_MODULE_NAME= new ConcurrentHashMap<>();
 	@Override
 	public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-	 
-		String grantStr = metadata.toString();
-		if(!grantStr.startsWith(GRANT_PREFIX)) {
-			//不符合条件的全部默认授权
-			return true;
+		if(conf==null) {
+			conf = ModuleConf.build(InstallEvnUtl.getByPrefix("tech.codingless.modules")); 
+			conf.getModules().forEach(module->{
+				if(module.isEnable()) {
+					MODULE_LOADED.put(module.getPkg(), module.isEnable());
+					MODULE_NAME.put(module.getPkg(), module.getName());
+				}
+			}); 
 		}
 		
 		
-		ModuleUtil.ModuleInfo info =  ModuleUtil.pickModuleInfoFromClassName(grantStr);
-		
-	  
-		String val = InstallEvnUtl.getApplicationProperites(GRANT_PREFIX.concat(info.getModuleCode()).concat(".").concat(info.getModuleVersion()).concat(".").concat("enable"));
-		if(!ENABLE.equalsIgnoreCase(val)) {
-			LOG.info("Disable Module[{}/{}],Resource[{}]",info.getModuleCode(),info.getModuleVersion(),info.getResource());
-			return false;
+		for(String path:MODULE_LOADED.keySet()) {
+			if(metadata.toString().startsWith(path)) {
+				LOG.info("load :{}",metadata.toString());
+				return true;
+			} 
 		}
 		
-		//TODO 到中央认证服务器去拿授权信息，对于未开通模块的租户不给加载
 		
-		
-		LOG.info("Enable Module[{}/{}],Resource[{}]",info.getModuleCode(),info.getModuleVersion(),info.getResource());
-		return true;
+		  
+		return false;
 	}
 
+	public static String findModuleNameByResourcePkg(Class<?> clazz) {
+		if(CLASS_MODULE_NAME.containsKey(clazz)) {
+			return CLASS_MODULE_NAME.get(clazz);
+		}
+		String pkg = clazz.getName();
+		for(String path:MODULE_NAME.keySet()) {
+			if(pkg.startsWith(path)) {
+				CLASS_MODULE_NAME.put(clazz, MODULE_NAME.get(path));
+				return MODULE_NAME.get(path);
+			}
+		}
+		return null;
+	}
 }
