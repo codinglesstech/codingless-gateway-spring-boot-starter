@@ -61,9 +61,9 @@ public class GatewayResponse {
 	}
 
 	/**
-	 * 为了方便统一内容拦截，请设置数据类型
 	 * 
-	 * @param contentBiz
+	 * 
+	 * @param contentBiz 为了方便统一内容拦截，请设置数据类型
 	 * @return this
 	 */
 	public GatewayResponse setContentBiz(String contentBiz) {

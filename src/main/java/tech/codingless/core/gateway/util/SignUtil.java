@@ -5,11 +5,8 @@ import java.util.TreeMap;
 public class SignUtil {
 	private static final String DENGYU="=";
 	private static final String AND="&";
-	/**
-	 * param1=xxx&param2=xxx&...&1647417940667
-	 * @param param
-	 * @param time
-	 * @return
+	/*
+	 * param1=xxx&param2=xxx&...&1647417940667 
 	 */
 	public static String toSignSrc(TreeMap<String, String> param,String time) {
 		StringBuilder src = new StringBuilder();

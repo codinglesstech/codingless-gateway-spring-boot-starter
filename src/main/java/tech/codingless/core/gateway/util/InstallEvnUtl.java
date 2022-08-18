@@ -28,13 +28,7 @@ public class InstallEvnUtl {
 		System.out.println(InstallEvnUtl.getProperites("a", "b"));
 	}
 
-	/**
-	 * 获得/application.properties文件中定义的KEY
-	 * @author 王鸿雁
-	 * @param keys
-	 * @return
-	 *
-	 */
+ 
 	public static String getApplicationProperites(String key){
 		 return getApplicationProperites(key,"test").get(key);
 	}
@@ -59,13 +53,7 @@ public class InstallEvnUtl {
 		}
 		return result; 
 	}
-	/**
-	 * 获得~/.io.uni.biz.propties下配置
-	 * @author 王鸿雁
-	 * @param keys
-	 * @return
-	 *
-	 */
+	 
 	public static Map<String, String> getProperites(String... keys) {
 		if (keys == null) {
 			return new HashMap<>();

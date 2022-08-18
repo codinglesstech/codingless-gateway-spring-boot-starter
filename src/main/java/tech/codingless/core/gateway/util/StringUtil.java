@@ -103,10 +103,10 @@ public class StringUtil {
 	private static final String MOBILE_REGEX = "(1[0-9]{10})|([\\+]?[0-9]{11,15})";
 
 	/**
-	 * 手机号码?
 	 * 
-	 * @param mobile
-	 * @return
+	 * 
+	 * @param mobile 手机号码?
+	 * @return true
 	 */
 	public static boolean isMobileNumber(String mobile) {
 		if (isEmpty(mobile)) {
@@ -118,10 +118,10 @@ public class StringUtil {
 	private static Random random = new Random();
 
 	/**
-	 * 随机的数字字符串
 	 * 
-	 * @param len
-	 * @return
+	 * 
+	 * @param len 随机的数字字符串
+	 * @return 随机的数字字符串
 	 */
 	public static String randomNumber(int len) {
 		StringBuffer sb = new StringBuffer();
@@ -136,10 +136,10 @@ public class StringUtil {
 	}
 
 	/**
-	 * sha1加密
 	 * 
-	 * @param str
-	 * @return
+	 * 
+	 * @param str sha1加密
+	 * @return sha1加密
 	 */
 	public static String sha1(String str) {
 		try {
@@ -256,10 +256,10 @@ public class StringUtil {
 	}
 
 	/**
-	 * 字符串转成数字,如果为空则返回0
 	 * 
-	 * @param str
-	 * @return
+	 * 
+	 * @param str 字符串转成数字,如果为空则返回0
+	 * @return 字符串转成数字,如果为空则返回0
 	 */
 	public static int toInt(String str) {
 		if (!isNumber(str)) {
@@ -280,10 +280,10 @@ public class StringUtil {
 	}
 
 	/**
-	 * 试试运行
 	 * 
-	 * @param luckStr
-	 * @return
+	 * 
+	 * @param luckStr 试试运行
+	 * @return 试试运行
 	 */
 	public static char tryLuck(String luckStr) {
 		return luckStr.charAt(new Random().nextInt(luckStr.length()));
@@ -305,9 +305,9 @@ public class StringUtil {
 	}
 
 	/**
-	 * 获得本机的MAC地址
 	 * 
-	 * @return
+	 * 
+	 * @return 获得本机的MAC地址
 	 */
 	public static String getMacAddress() {
 		try {
@@ -356,7 +356,7 @@ public class StringUtil {
 	private static final String REPLACE_PARAMS_REG_START_STR = "#\\{[ \t]*";
 	private static final String REPLACE_PARAMS_REG_END_STR = "[ \t]*\\}";
 
-	/**
+	/*
 	 * 参数替换，如： select * from abc where id='#{id }' -> {"id":"123"} -> select * from
 	 * abc where id='123' <br>
 	 * 可以用在SQL语句参数替换，DSL参数替换等场景
@@ -398,10 +398,9 @@ public class StringUtil {
 			"3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z" };
 
 	/**
-	 * 生成8位数短GUID，通过32位GUID转化而来，谨慎重复,必要的时候请加前缀来减少重复机率
-	 * <span style="color:red">请自己根据场景合理使用，小心可能会重复</span>
+	 *  
 	 * 
-	 * @return
+	 * @return  生成8位数短GUID，通过32位GUID转化而来，谨慎重复,必要的时候请加前缀来减少重复机率
 	 */
 	public static String genShortGUID() {
 		StringBuilder stringBuilder = new StringBuilder();
@@ -413,21 +412,7 @@ public class StringUtil {
 		return stringBuilder.toString();
 	}
 
-	/**
-	 * 截取前N个字符
-	 * 
-	 * <pre>
-	 * StringUtil.substring(null,3)	->	""
-	 * StringUtil.substring("",3)	->	""
-	 * StringUtil.substring(" ",3)	->	" "
-	 * StringUtil.substring("a",3)	->	"a"
-	 * StringUtil.substring("abcdef",3)	->	"abc"
-	 * </pre>
-	 * 
-	 * @param str
-	 * @param len
-	 * @return
-	 */
+	 
 	public static String substring(String str, int len) {
 		if (len <= 0 || str == null) {
 			return EMPTY_STR;
@@ -435,14 +420,7 @@ public class StringUtil {
 		return str.length() <= len ? str : str.substring(0, len);
 	}
 
-	/**
-	 * 将 str,str,str -> [str,str,str...] 格式
-	 * 
-	 * @author 王鸿雁
-	 * @param strs
-	 * @return
-	 *
-	 */
+	 
 	public static List<String> toArray(String strs) {
 		if (StringUtil.isEmpty(strs)) {
 			return Collections.emptyList();

@@ -27,23 +27,23 @@ public @interface MyAuth {
 	public static ThreadLocal<String> CURRENT_TOKEN = new ThreadLocal<String>();
  
 	/**
-	 * 有权限则解析，无权限则直接执行
-	 * @return
+	 * 
+	 * @return 有权限则解析，无权限则直接执行
 	 */
 	boolean required() default true;
 	 
-	/**
+	/* 
 	 * 
 	 * 权限代码,对于同一代码的会认为是同一权限
 	 *
 	 */
 	String code() default "";
 	/**
-	 * 权限名称
-	 *
+	 * 
+	 * @return 权限名称
 	 */
 	String name() default "";
-	/**
+	/* 
 	 * 
 	 * 操作类型
 	 *
@@ -51,8 +51,8 @@ public @interface MyAuth {
 	MyAuthTypeEnum type() default MyAuthTypeEnum.UNKNOW;
 	/**
 	 * 
-	 * 支持的数据权限级别
-	 * @return
+	 * 
+	 * @return 支持的数据权限级别
 	 *
 	 */
 	MyAuthLevelEnum [] level() default {};

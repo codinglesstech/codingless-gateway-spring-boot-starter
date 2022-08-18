@@ -24,13 +24,7 @@ public class ModuleUtil {
 		NONE.setModuleCodeAndVersion("*/*"); 
 	}
 
-	/**
-	 * 
-	 * 从类名中获取模块及版本信息
-	 * @param fullClassName
-	 * @return
-	 *
-	 */
+ 
 	public static ModuleInfo pickModuleInfoFromClassName(String fullClassName) {
 		ModuleInfo info = new ModuleInfo();
 		info.setModuleCode("NONE");

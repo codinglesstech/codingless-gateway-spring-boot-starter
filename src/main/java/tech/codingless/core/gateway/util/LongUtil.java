@@ -2,13 +2,7 @@ package tech.codingless.core.gateway.util;
 
 public class LongUtil {
 
-	/**
-	 * 相加
-	 * 
-	 * @param v1
-	 * @param v2
-	 * @return
-	 */
+ 
 	public static long add(Long v1, Long v2) {
 		return (v1 == null ? 0 : v1) + (v2 == null ? 0 : v2);
 	}

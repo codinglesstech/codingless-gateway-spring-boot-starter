@@ -5,16 +5,7 @@ import java.lang.annotation.RetentionPolicy;
 
 /**
  * 通过AccessKey机制来访问该接口 
- * <pre>
- *   URL传参签名(GET):   
- *   参数1=xx&参数2=xxx& ... &TimeStamp
- *   参数按ASCCI码排序
- *   
- *   BODY传参签名
- *   
- *   Body内容&TimeStamp
- *   
- *   
+ * <pre> 
  *   常见属性
  *   =====================================================================
  *   MyAccessKeyAuth.ACCESS_KEY.get()		|	access key
@@ -33,8 +24,8 @@ public @interface MyAccessKeyAuth {
 	
   
 	/**
-	 * 需要写权限
-	 * @return
+	 * 
+	 * @return true 需要写权限
 	 */
 	boolean requiredWriteAble() default false;
  

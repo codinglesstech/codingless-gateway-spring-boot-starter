@@ -55,10 +55,10 @@ public class DateUtil {
 	}
 
 	/**
-	 * 得到一个星期的星期一
 	 * 
-	 * @param date
-	 * @return
+	 * 
+	 * @param date 得到一个星期的星期一
+	 * @return 得到一个星期的星期一
 	 */
 	public static Date getMonday(Date date) {
 		Calendar cal = Calendar.getInstance();
@@ -80,10 +80,10 @@ public class DateUtil {
 	}
 
 	/**
-	 * yyyy-MM-dd
 	 * 
-	 * @param source
-	 * @return
+	 * 
+	 * @param source yyyy-MM-dd
+	 * @return yyyy-MM-dd
 	 */
 	public static Date parse(String source) {
 		try {
@@ -105,13 +105,7 @@ public class DateUtil {
 		return yyyyMMdd.format(date);
 	}
 
-	/**
-	 * data转string
-	 * 
-	 * @param dateValue
-	 * @param formatPattern
-	 * @return
-	 */
+	 
 	public static String formatDate(Date dateValue, String formatPattern) {
 		try {
 			if (dateValue == null) {
@@ -125,13 +119,7 @@ public class DateUtil {
 		return null;
 	}
 
-	/**
-	 * string转date
-	 * 
-	 * @param dateValue
-	 * @param formatPattern
-	 * @return
-	 */
+ 
 	public static Date parseDate(String dateValue, String formatPattern) {
 		try {
 			if (StringUtil.isEmpty(dateValue) || !dateValue.matches(DATETIME_REGEX)) {
@@ -145,7 +133,7 @@ public class DateUtil {
 		return null;
 	}
 
-	/**
+	/*
 	 * <pre>
 	 * 2020-11-17T22:47:22.550Z  :UTC 0时区(Z代表)
 	 * 2020-11-18T00:00:00+8
@@ -167,13 +155,7 @@ public class DateUtil {
 		return new Date(LocalDateTime.parse(utcTimeStr.substring(0, 19)).toInstant(ZoneOffset.of(offsetStr)).toEpochMilli());
 	}
 
-	/**
-	 * 
-	 * @author 王鸿雁
-	 * @param date
-	 * @return
-	 *
-	 */
+ 
 	public static String toZeroUtcStr(Date date) {
 		LocalDateTime ldt = LocalDateTime.ofInstant(Instant.ofEpochMilli(date.getTime()), ZoneId.of("Z"));
 		return ldt.toString();

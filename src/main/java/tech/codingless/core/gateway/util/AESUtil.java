@@ -34,8 +34,8 @@ public class AESUtil {
 	/**
 	 * 
 	 * @param keyLen 指定长度密钥
-	 * @param salt
-	 * @return
+	 * @param salt salt
+	 * @return securet
 	 */
 	public static String genNewSecret(KeyLen keyLen, String salt) {
 		try {

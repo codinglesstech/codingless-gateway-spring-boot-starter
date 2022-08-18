@@ -31,14 +31,7 @@ public class RsaUtil {
 		return PUB_KEY;
 	}
 
-	/**
-	 * 公钥验证
-	 * 
-	 * @throws NoSuchAlgorithmException
-	 * @throws InvalidKeySpecException
-	 * @throws SignatureException
-	 * @throws InvalidKeyException
-	 */
+	 
 	public static boolean verify(String src, String signStr) throws NoSuchAlgorithmException, InvalidKeySpecException, SignatureException, InvalidKeyException {
 		KeyFactory keyFactory = KeyFactory.getInstance(KEY_ALGORTHM);
 
@@ -51,14 +44,7 @@ public class RsaUtil {
 		return sign.verify(Base64.decodeBase64(signStr));
 	}
 
-	/**
-	 * 私钥签名
-	 * 
-	 * @throws NoSuchAlgorithmException
-	 * @throws InvalidKeySpecException
-	 * @throws SignatureException
-	 * @throws InvalidKeyException
-	 */
+ 
 	public static String sign(String srcString) throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, SignatureException {
 		KeyFactory keyFactory = KeyFactory.getInstance(KEY_ALGORTHM);
 		PKCS8EncodedKeySpec pkcs8 = new PKCS8EncodedKeySpec(Base64.decodeBase64(RSA_PRIVATE_PKCS8_KEY));
@@ -121,11 +107,11 @@ public class RsaUtil {
 	}
 
 	/**
-	 * 用私钥加密
+	 * 
 	 * 
 	 * @param data 加密数据
 	 * @param key  密钥
-	 * @return
+	 * @return 用私钥加密
 	 * @throws Exception
 	 */
 	public static byte[] encryptByPrivateKey(byte[] data, String key) throws Exception {
@@ -153,11 +139,11 @@ public class RsaUtil {
 	}
 
 	/**
-	 * 用私钥解密
+	 * 
 	 * 
 	 * @param data 加密数据
 	 * @param key  密钥
-	 * @return
+	 * @return 用私钥解密
 	 * @throws Exception
 	 */
 	public static byte[] decryptByPrivateKey(byte[] data, String key) throws Exception {
@@ -202,12 +188,7 @@ public class RsaUtil {
 
 	}
 
-	/**
-	 * 生成一对新的秘钥对
-	 * 
-	 * @return
-	 * @throws NoSuchAlgorithmException
-	 */
+ 
 	public static KeyPairVO newKeyPair(int keysize) throws NoSuchAlgorithmException {
 		KeyPairVO keyPairVO = new RsaUtil().new KeyPairVO();
 		KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance(KEY_ALGORTHM);

@@ -23,13 +23,7 @@ public class AccessKeyHelper {
 		private String company;
 		public Map<String, ModuleGrant> modules = new HashMap<>();
 
-		/**
-		 * 是否可读
-		 * 
-		 * @param module
-		 * @param version
-		 * @return
-		 */
+	 
 		public boolean isReadAble(String moduleAndversion) { 
 			if(modules.containsKey(moduleAndversion)) {
 				return modules.get(moduleAndversion).isReadable();
@@ -40,13 +34,7 @@ public class AccessKeyHelper {
 			return false;
 		}
 
-		/**
-		 * 是否可写
-		 * 
-		 * @param module
-		 * @param version
-		 * @return
-		 */
+	 
 		public boolean isWriteAble(String moduleAndversion) {
 			if(modules.containsKey(moduleAndversion)) {
 				return modules.get(moduleAndversion).isWriteable();
