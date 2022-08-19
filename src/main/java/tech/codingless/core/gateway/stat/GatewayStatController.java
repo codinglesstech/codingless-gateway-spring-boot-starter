@@ -126,14 +126,14 @@ public class GatewayStatController extends BaseController implements Application
 		resp.addContent("jvmFreeMemory", Runtime.getRuntime().freeMemory());
 		resp.addContent("jvmMaxMemory", Runtime.getRuntime().maxMemory());
 
-		OperatingSystemMXBean mxbean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-		resp.addContent("physicalTotalMemorySize", mxbean.getTotalMemorySize());
-		resp.addContent("physicalFreeMemorySize", mxbean.getFreeMemorySize());
-		resp.addContent("physicalUsedMemorySize", mxbean.getTotalMemorySize() - mxbean.getFreeMemorySize());
+		OperatingSystemMXBean mxbean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean(); 
+		resp.addContent("physicalTotalMemorySize", mxbean.getTotalPhysicalMemorySize());
+		resp.addContent("physicalFreeMemorySize", mxbean.getFreePhysicalMemorySize());
+		resp.addContent("physicalUsedMemorySize", mxbean.getTotalPhysicalMemorySize() - mxbean.getFreePhysicalMemorySize());
 		resp.addContent("osName", System.getProperty("os.name"));
 		resp.addContent("timezone", System.getProperty("user.timezone"));
 		resp.addContent("availableProcessors", mxbean.getAvailableProcessors());
-		resp.addContent("cpuLoad", mxbean.getCpuLoad());
+		resp.addContent("cpuLoad", mxbean.getSystemCpuLoad());
 		resp.addContent("committedVirtualMemorySize", mxbean.getCommittedVirtualMemorySize());
 		resp.addContent("systemLoadAverage", mxbean.getSystemLoadAverage());
 		resp.addContent("freeSwapSpaceSize", mxbean.getFreeSwapSpaceSize());
