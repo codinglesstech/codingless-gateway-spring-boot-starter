@@ -43,6 +43,7 @@ public class WrapRequestFilter implements Filter {
 			log.error("error",e); 
 			Throwable cause = e.getCause();
 			if(cause instanceof MyException) {
+			 
 				GatewayResponse resp = new GatewayResponse();
 				String [] msg = cause.getMessage().split(":");
 				resp.fail(msg[0], msg.length==2?msg[1]:cause.getMessage());

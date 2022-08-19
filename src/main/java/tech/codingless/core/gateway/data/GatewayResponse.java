@@ -12,17 +12,18 @@ import java.util.Map;
 public class GatewayResponse {
 	private Map<String, Object> content;
 	private String requestId;
-	private String contentBiz;
+	private String contentTag;
 	private String code;
-	private String errorCode; 
-	
+	private String errorCode;
+
 	public String getErrorCode() {
 		return errorCode;
-	} 
+	}
+
 	private String msg;
 
-	public String getContentBiz() {
-		return contentBiz;
+	public String getContentTag() {
+		return contentTag;
 	}
 
 	public String getCode() {
@@ -33,14 +34,17 @@ public class GatewayResponse {
 		return msg;
 	}
 
+	public void setRequestId(String requestId) {
+		this.requestId = requestId;
+	}
 
-	public GatewayResponse fail(String errorCode,String errorMsg) {
+	public GatewayResponse fail(String errorCode, String errorMsg) {
 		this.code = "fail";
 		this.errorCode = errorCode;
 		this.msg = errorMsg;
 		return this;
 	}
-	
+
 	public GatewayResponse fail(String errorMessage) {
 		this.code = "fail";
 		this.msg = errorMessage;
@@ -62,17 +66,17 @@ public class GatewayResponse {
 
 	/**
 	 * 
-	 * 
-	 * @param contentBiz 为了方便统一内容拦截，请设置数据类型
+	 * @param contentTag 为了方便统一内容拦截，请设置数据类型
 	 * @return this
 	 */
-	public GatewayResponse setContentBiz(String contentBiz) {
-		this.contentBiz = contentBiz;
+
+	public GatewayResponse setContentTag(String contentTag) {
+		this.contentTag = contentTag;
 		return this;
 	}
 
 	public GatewayResponse addContent(String name, Object value) {
-		if(content==null) {
+		if (content == null) {
 			content = new HashMap<>(4);
 		}
 		content.put(name, value);

@@ -1,5 +1,6 @@
 package tech.codingless.core.gateway.interceptor;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,6 +42,7 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 	private static final String ACCESS_TIMESTAMP = "Access-Timestamp";
 	private static final String ACCESS_SIGN = "Access-Sign";
 	private static final String X_REAL_IP = "X-Real-IP";
+	private static final String DEFAULT_MODULE = "00000";
 
 	private static final ThreadLocal<MyMemoryAnalysisFlag> flag = new ThreadLocal<MyMemoryAnalysisFlag>();
 	private static final ThreadLocal<Long> t = new ThreadLocal<>();
@@ -65,11 +67,10 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 			if (myBiz != null) {
 				DISABLE_RESPONSE_LOG.set(myBiz.disableResponseLog());
 			}
-			//String requestId =StringUtil.genShortGUID() +"-"+ StringUtil.genGUID();
-			//response.addHeader("Request-Id", requestId); 
-			//SessionUtil.RID.set(requestId);
-			
-			
+			// String requestId =StringUtil.genShortGUID() +"-"+ StringUtil.genGUID();
+			// response.addHeader("Request-Id", requestId);
+			// SessionUtil.RID.set(requestId);
+
 			REQUEST_BODY.remove();
 			// 检查认证
 			MyAccessKeyAuth myAccessKeyAuth = handlerMethod.getMethodAnnotation(MyAccessKeyAuth.class);
@@ -78,31 +79,23 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 				String accessTimeStamp = request.getHeader(ACCESS_TIMESTAMP);
 				String accessSign = request.getHeader(ACCESS_SIGN);
 				if (StringUtil.hasEmpty(accessKeyStr, accessTimeStamp, accessSign)) {
-					response.setHeader(MyAuth.UNAUTHORIZED_MSG, "1");
-					response.sendError(MyAuth.UNAUTHORIZED_CODE);
+
+					notAuthResponse(request, response, handlerMethod);
 					return false;
 				}
 				AccessKey accessKey = AccessKeyHelper.get(accessKeyStr.trim());
 				String moduleName = GrantModuleCondition.findModuleNameByResourcePkg(handlerMethod.getBean().getClass());
 				if (StringUtil.isEmpty(moduleName)) {
-					response.setHeader(MyAuth.UNAUTHORIZED_MSG, "1");
-					response.sendError(MyAuth.UNAUTHORIZED_CODE);
+					notAuthResponse(request, response, handlerMethod);
 					return false;
 				}
 
-				String requestId =DateUtil.formatYYYYMMDD(new Date())+"-REQ-"+ moduleName.replace("/", "").toUpperCase() +"-"+ StringUtil.genGUID();
-				response.addHeader("Request-Id", requestId);
-				SessionUtil.RID.set(requestId);
-				flag.set(new MyMemoryAnalysisFlag("REQ:" + request.getRequestURL().toString(), requestId)); 
-				
 				if (!accessKey.isReadAble(moduleName) && !accessKey.isWriteAble(moduleName)) {
-					response.setHeader(MyAuth.UNAUTHORIZED_MSG, "1");
-					response.sendError(MyAuth.UNAUTHORIZED_CODE);
+					notAuthResponse(request, response, handlerMethod);
 					return false;
 				}
 				if (myAccessKeyAuth.requiredWriteAble() && BooleanUtils.isFalse(accessKey.isWriteAble(moduleName))) {
-					response.setHeader(MyAuth.UNAUTHORIZED_MSG, "1");
-					response.sendError(MyAuth.UNAUTHORIZED_CODE);
+					notAuthResponse(request, response, handlerMethod);
 					return false;
 				}
 
@@ -114,10 +107,11 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 					});
 					boolean verifySuccess = SHAUtil.verifySign(accessKey.getSecret(), SignUtil.toSignSrc(singParam, accessTimeStamp), accessSign);
 					if (!verifySuccess) {
-						response.setHeader(MyAuth.UNAUTHORIZED_MSG, "1");
-						response.sendError(MyAuth.UNAUTHORIZED_CODE);
+						notAuthResponse(request, response, handlerMethod);
 						return false;
 					}
+
+					setRequestLog(moduleName, request, response);
 					MyAccessKeyAuth.CURRENT_COMPANY_ID.set(accessKey.getCompany());
 					MyAccessKeyAuth.ACCESS_KEY.set(accessKey.getKey());
 					SessionUtil.CURRENT_COMPANY_ID.set(accessKey.getCompany());
@@ -131,10 +125,11 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 					REQUEST_BODY.set(requestBody);
 					boolean verifySuccess = SHAUtil.verifySign(accessKey.getSecret(), requestBody + "&" + accessTimeStamp, accessSign);
 					if (!verifySuccess) {
-						response.setHeader(MyAuth.UNAUTHORIZED_MSG, "1");
-						response.sendError(MyAuth.UNAUTHORIZED_CODE);
+						notAuthResponse(request, response, handlerMethod);
 						return false;
 					}
+
+					setRequestLog(moduleName, request, response);
 					MyAccessKeyAuth.CURRENT_COMPANY_ID.set(accessKey.getCompany());
 					MyAccessKeyAuth.ACCESS_KEY.set(accessKey.getKey());
 					SessionUtil.CURRENT_COMPANY_ID.set(accessKey.getCompany());
@@ -144,11 +139,7 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 				return false;
 			}
 
-			
-			String requestId =DateUtil.formatYYYYMMDD(new Date())+"-REQ-00000-"+ StringUtil.genGUID();
-			response.addHeader("Request-Id", requestId);
-			SessionUtil.RID.set(requestId);
-			flag.set(new MyMemoryAnalysisFlag("REQ:" + request.getRequestURL().toString(), requestId));  
+			setRequestLog(DEFAULT_MODULE, request, response);
 			return AsyncHandlerInterceptor.super.preHandle(request, response, handler);
 
 		} catch (Throwable e) {
@@ -156,6 +147,60 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 		} finally {
 		}
 		return false;
+	}
+
+	private void notAuthResponse(HttpServletRequest request, HttpServletResponse response, HandlerMethod handlerMethod) throws IOException {
+		try {
+			
+			response.setHeader(MyAuth.UNAUTHORIZED_MSG, "1");
+			response.sendError(MyAuth.UNAUTHORIZED_CODE); 
+			SessionUtil.CURRENT_RESPONSE.set(MyAuth.UNAUTHORIZED_MSG);
+			appendLog(request, response, handlerMethod, null);
+			
+		}catch(Throwable e) {
+			
+		}finally {
+			clearSession();
+		}
+	}
+
+	private void appendLog(HttpServletRequest request, HttpServletResponse response, Object handlerMethod, Exception ex) throws IOException {
+		// 记请求日志
+		String uri = getUri(request, handlerMethod);
+
+		String urlParam = request.getParameterMap().isEmpty()?null:JSON.toJSONString(request.getParameterMap());
+		long cost = System.currentTimeMillis() - t.get();
+		JSONObject req = new JSONObject();
+		req.put("ip", request.getHeader(X_REAL_IP));
+		req.put("t", System.currentTimeMillis());
+		req.put("method", request.getMethod());
+		req.put("companyId", MyAccessKeyAuth.CURRENT_COMPANY_ID.get());
+		req.put("access_key", MyAccessKeyAuth.ACCESS_KEY.get());
+		req.put("cost", cost);
+		req.put("uri", uri);
+		req.put("url", request.getRequestURL().toString());
+		req.put("url_param", urlParam);
+		if ("POST".equalsIgnoreCase(request.getMethod()) && "application/json".equalsIgnoreCase(request.getContentType()) && request instanceof BodyReaderHttpServletRequestWrapper) {
+			req.put("req_body", REQUEST_BODY.get());
+		}
+		if (BooleanUtils.isNotTrue(DISABLE_RESPONSE_LOG.get())) {
+			req.put("response", SessionUtil.CURRENT_RESPONSE.get());
+		}
+		StringBuilder str = new StringBuilder();
+		str.append("REQUEST_INFO:").append(req);
+		log.info(str.toString());
+
+		RequestMonitorHelper.append(SessionUtil.CURRENT_COMPANY_ID.get(), SessionUtil.CURRENT_USER_ID.get(), SessionUtil.CURRENT_USER_NAME.get(), SessionUtil.RID.get(), uri,
+				request.getRequestURL().toString(), cost, urlParam, REQUEST_BODY.get(), BooleanUtils.isNotTrue(DISABLE_RESPONSE_LOG.get()) ? SessionUtil.CURRENT_RESPONSE.get() : null, ex);
+
+	}
+
+	private void setRequestLog(String moduleName, HttpServletRequest request, HttpServletResponse response) {
+		String requestId = DateUtil.formatYYYYMMDD(new Date()) + "-REQ-" + moduleName.replace("/", "").toUpperCase() + "-" + StringUtil.genGUID()+"-"+StringUtil.genShortGUID().toLowerCase();
+		response.addHeader("Request-Id", requestId);
+		SessionUtil.RID.set(requestId);
+		flag.set(new MyMemoryAnalysisFlag("REQ:" + request.getRequestURL().toString(), requestId));
+
 	}
 
 	private void clearSession() {
@@ -173,33 +218,7 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 		try {
 
 			// 记请求日志
-			String uri = getUri(request, handler);
-
-			String urlParam = JSON.toJSONString(request.getParameterMap());
-			long cost = System.currentTimeMillis() - t.get();
-			JSONObject req = new JSONObject();
-			req.put("ip", request.getHeader(X_REAL_IP));
-			req.put("t", System.currentTimeMillis());
-			req.put("method", request.getMethod());
-			req.put("companyId", MyAccessKeyAuth.CURRENT_COMPANY_ID.get());
-			req.put("access_key", MyAccessKeyAuth.ACCESS_KEY.get());
-			req.put("cost", cost);
-			req.put("uri", uri);
-			req.put("url", request.getRequestURL().toString());
-			req.put("url_param", urlParam);
-			if ("POST".equalsIgnoreCase(request.getMethod()) && "application/json".equalsIgnoreCase(request.getContentType()) && request instanceof BodyReaderHttpServletRequestWrapper) {
-				req.put("req_body", REQUEST_BODY.get());
-			}
-			if (BooleanUtils.isNotTrue(DISABLE_RESPONSE_LOG.get())) {
-				req.put("response", SessionUtil.CURRENT_RESPONSE.get());
-			}
-			StringBuilder str = new StringBuilder();
-			str.append("REQUEST_INFO:").append(req);
-			log.info(str.toString());
-
-			RequestMonitorHelper.append(SessionUtil.CURRENT_COMPANY_ID.get(), SessionUtil.CURRENT_USER_ID.get(), SessionUtil.RID.get(), uri, request.getRequestURL().toString(), cost, urlParam,
-					REQUEST_BODY.get(), BooleanUtils.isNotTrue(DISABLE_RESPONSE_LOG.get())?SessionUtil.CURRENT_RESPONSE.get():null,ex);
-
+			appendLog(request, response, handler, ex);
 		} catch (Throwable e) {
 
 		} finally {
@@ -209,15 +228,16 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 		AsyncHandlerInterceptor.super.afterCompletion(request, response, handler, ex);
 	}
 
-	private static final ConcurrentHashMap<String,String> URI_CATCH=new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<String, String> URI_CATCH = new ConcurrentHashMap<>();
+
 	private String getUri(HttpServletRequest request, Object handler) {
-		if(URI_CATCH.containsKey(handler.toString())) {
+		if (URI_CATCH.containsKey(handler.toString())) {
 			return URI_CATCH.get(handler.toString());
 		}
 		StringBuilder uri = new StringBuilder();
 		if (handler instanceof HandlerMethod) {
 			HandlerMethod method = (HandlerMethod) handler;
- 
+
 			RequestMapping reqMapping = method.getBeanType().getAnnotation(RequestMapping.class);
 			if (reqMapping != null) {
 				uri.append(reqMapping.value()[0]);

@@ -32,6 +32,7 @@ public class RequestMonitorHelper {
 		private long t;
 		private String companyId;
 		private String userId;
+		private String userName;
 		private String reqId;
 		private String urlParam;
 		private String reqBody;
@@ -57,8 +58,24 @@ public class RequestMonitorHelper {
 	public static void clear() {
 		CACHE.clear();
 	}
+	public static RequestLog findByRequestId(String requestId) {
+		
+		for(RequestAnalysis req:CACHE.values()) {
+			for(RequestLog reqLog :req.getNormals()) {
+				if(requestId.equals(reqLog.getReqId())) {
+					return reqLog;
+				}
+			}
+			for(RequestLog reqLog :req.getErrors()) {
+				if(requestId.equals(reqLog.getReqId())) {
+					return reqLog;
+				}
+			}
+		}
+		return null;
+	}
 
-	public static void append(String companyId, String userId, String reqId, String uri, String url, long cost, String urlParam, String reqBody, String response,Exception e) {
+	public static void append(String companyId, String userId,String userName, String reqId, String uri, String url, long cost, String urlParam, String reqBody, String response,Exception e) {
 		RequestAnalysis ra = CACHE.get(uri);
 		if(ra==null) {
 			ra = new RequestAnalysis();
@@ -76,6 +93,7 @@ public class RequestMonitorHelper {
 		log.setUrl(url);
 		log.setCompanyId(companyId);
 		log.setUserId(userId);
+		log.setUserName(userName);
 		log.setT(System.currentTimeMillis());
 		log.setReqId(reqId);
 		log.setCost(cost);

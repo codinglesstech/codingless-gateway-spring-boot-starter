@@ -57,6 +57,17 @@ public class GatewayStatController extends BaseController implements Application
 		}
 		return resp().success().addContent("reqs", RequestMonitorHelper.getLog(uri));
 	}
+	
+
+	@MyBiz(disableResponseLog = true)
+	@GetMapping(value = "/req")
+	public GatewayResponse req(String rid) {
+		if (StringUtil.isEmpty(rid)) {
+			return resp().success();
+		}
+		return resp().success().setContentTag("request").addContent("req", RequestMonitorHelper.findByRequestId(rid));
+	}
+	
 
 	@PostMapping(value = "/req/clear")
 	public GatewayResponse reqClear() {
