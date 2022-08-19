@@ -10,7 +10,7 @@ import java.util.Map;
  *
  */
 public class GatewayResponse {
-	private Map<String, Object> content = new HashMap<>();
+	private Map<String, Object> content;
 	private String requestId;
 	private String contentBiz;
 	private String code;
@@ -72,6 +72,9 @@ public class GatewayResponse {
 	}
 
 	public GatewayResponse addContent(String name, Object value) {
+		if(content==null) {
+			content = new HashMap<>(4);
+		}
 		content.put(name, value);
 		return this;
 	}
