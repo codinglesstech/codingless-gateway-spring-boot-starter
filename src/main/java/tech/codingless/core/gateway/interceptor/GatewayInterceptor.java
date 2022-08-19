@@ -46,6 +46,7 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 
 	private static final ThreadLocal<MyMemoryAnalysisFlag> flag = new ThreadLocal<MyMemoryAnalysisFlag>();
 	private static final ThreadLocal<Long> t = new ThreadLocal<>();
+	private static final ThreadLocal<Boolean> DISABLE_LOG = new ThreadLocal<>();
 	private static final ThreadLocal<Boolean> DISABLE_RESPONSE_LOG = new ThreadLocal<>();
 	private static final ThreadLocal<String> REQUEST_BODY = new ThreadLocal<String>();
 
@@ -65,6 +66,7 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 			HandlerMethod handlerMethod = (HandlerMethod) handler;
 			MyBiz myBiz = handlerMethod.getMethodAnnotation(MyBiz.class);
 			if (myBiz != null) {
+				DISABLE_LOG.set(myBiz.disableRequestLog());
 				DISABLE_RESPONSE_LOG.set(myBiz.disableResponseLog());
 			}
 			// String requestId =StringUtil.genShortGUID() +"-"+ StringUtil.genGUID();
@@ -165,6 +167,9 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 	}
 
 	private void appendLog(HttpServletRequest request, HttpServletResponse response, Object handlerMethod, Exception ex) throws IOException {
+		if(BooleanUtils.isTrue(DISABLE_LOG.get())) {
+			return;
+		}
 		// 记请求日志
 		String uri = getUri(request, handlerMethod);
 
@@ -199,17 +204,24 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 		String requestId = DateUtil.formatYYYYMMDD(new Date()) + "-REQ-" + moduleName.replace("/", "").toUpperCase() + "-" + StringUtil.genGUID()+"-"+StringUtil.genShortGUID().toLowerCase();
 		response.addHeader("Request-Id", requestId);
 		SessionUtil.RID.set(requestId);
-		flag.set(new MyMemoryAnalysisFlag("REQ:" + request.getRequestURL().toString(), requestId));
-
+		MyMemoryAnalysisFlag maf = new MyMemoryAnalysisFlag("REQ:" + request.getRequestURL().toString(), requestId);
+		maf.setReqBody(REQUEST_BODY.get());
+		if(!request.getParameterMap().isEmpty()) {
+			maf.setUrlParam(JSON.toJSONString(request.getParameterMap())); 
+		}
+		flag.set(maf);
+		RequestMonitorHelper.append(maf);
 	}
 
-	private void clearSession() {
+	private void clearSession() { 
+		RequestMonitorHelper.clear(flag.get());
 		flag.remove();
 		MyAccessKeyAuth.CURRENT_COMPANY_ID.remove();
 		MyAccessKeyAuth.ACCESS_KEY.remove();
 		REQUEST_BODY.remove();
 		SessionUtil.CURRENT_COMPANY_ID.remove();
 		SessionUtil.CURRENT_USER_ID.remove();
+		DISABLE_LOG.remove();
 	}
 
 	@Override

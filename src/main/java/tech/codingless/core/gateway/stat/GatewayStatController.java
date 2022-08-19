@@ -2,8 +2,12 @@ package tech.codingless.core.gateway.stat;
 
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,7 +22,9 @@ import lombok.extern.slf4j.Slf4j;
 import tech.codingless.core.gateway.BaseController;
 import tech.codingless.core.gateway.annotation.MyBiz;
 import tech.codingless.core.gateway.data.GatewayResponse;
+import tech.codingless.core.gateway.data.MyMemoryAnalysisFlag;
 import tech.codingless.core.gateway.helper.RequestMonitorHelper;
+import tech.codingless.core.gateway.service.ProgrameVersionLookupService;
 import tech.codingless.core.gateway.util.MacAddressUtil;
 
 @Slf4j
@@ -27,7 +33,10 @@ import tech.codingless.core.gateway.util.MacAddressUtil;
 public class GatewayStatController extends BaseController implements ApplicationListener<ApplicationStartedEvent> {
 	private long startedTime;
 
-	@MyBiz(disableResponseLog = true)
+	@Autowired(required = false)
+	private ProgrameVersionLookupService programeVersionLookupService;
+
+	@MyBiz(disableResponseLog = true,disableRequestLog = true)
 	@GetMapping(value = "/thread/dump")
 	public String threadDump() {
 		StringBuffer sb = new StringBuffer();
@@ -49,7 +58,7 @@ public class GatewayStatController extends BaseController implements Application
 		return sb.toString();
 	}
 
-	@MyBiz(disableResponseLog = true)
+	@MyBiz(disableResponseLog = true,disableRequestLog = true)
 	@GetMapping(value = "/req/history")
 	public GatewayResponse reqLog(String uri) {
 		if (StringUtil.isEmpty(uri)) {
@@ -58,22 +67,47 @@ public class GatewayStatController extends BaseController implements Application
 		return resp().success().addContent("reqs", RequestMonitorHelper.getLog(uri));
 	}
 	
+	
+	@MyBiz(disableResponseLog = true,disableRequestLog = true)
+	@GetMapping(value = "/req/active")
+	public GatewayResponse reqActive() { 
+		List<MyMemoryAnalysisFlag> list = new ArrayList<>();
+		Enumeration<MyMemoryAnalysisFlag> keys = RequestMonitorHelper.activeReqs().keys();
+		while(keys.hasMoreElements()) {
+			list.add(keys.nextElement());
+		}
+		return resp("ActiveRequests").addContent("activeRequests", list);
+	}
+	
+	
 
-	@MyBiz(disableResponseLog = true)
+	@MyBiz(disableResponseLog = true,disableRequestLog = true)
+	@GetMapping(value = "/version")
+	public GatewayResponse version() {
+		if (programeVersionLookupService == null) {
+			return resp().success();
+
+		}
+		return resp().success().setContentTag("ProgrameVersionInfo").addContent("version", programeVersionLookupService.version());
+	}
+
+	@MyBiz(disableResponseLog = true,disableRequestLog = true)
 	@GetMapping(value = "/req")
 	public GatewayResponse req(String rid) {
 		if (StringUtil.isEmpty(rid)) {
 			return resp().success();
 		}
-		return resp().success().setContentTag("request").addContent("req", RequestMonitorHelper.findByRequestId(rid));
+		return resp().success().setContentTag("Request").addContent("req", RequestMonitorHelper.findByRequestId(rid));
 	}
-	
 
+
+	@MyBiz(disableResponseLog = true,disableRequestLog = true)
 	@PostMapping(value = "/req/clear")
 	public GatewayResponse reqClear() {
 		RequestMonitorHelper.clear();
 		return resp().success();
 	}
+
 
 	@PostMapping(value = "/gc")
 	public GatewayResponse gc() {
@@ -81,39 +115,43 @@ public class GatewayStatController extends BaseController implements Application
 		return resp().success();
 	}
 
-	@MyBiz(disableResponseLog = true)
+
+	@MyBiz(disableResponseLog = true,disableRequestLog = true) 
 	@GetMapping(value = "/info")
 	public GatewayResponse info() {
 		GatewayResponse resp = resp();
 		resp.success();
 		resp.addContent("startedTime", startedTime);
-		resp.addContent("jvmTotalMemory", Runtime.getRuntime().totalMemory()); 
-		resp.addContent("jvmFreeMemory", Runtime.getRuntime().freeMemory()); 
-		resp.addContent("jvmMaxMemory", Runtime.getRuntime().maxMemory());  
-		
+		resp.addContent("jvmTotalMemory", Runtime.getRuntime().totalMemory());
+		resp.addContent("jvmFreeMemory", Runtime.getRuntime().freeMemory());
+		resp.addContent("jvmMaxMemory", Runtime.getRuntime().maxMemory());
+
 		OperatingSystemMXBean mxbean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-		resp.addContent("physicalTotalMemorySize", mxbean.getTotalMemorySize()); 
-		resp.addContent("physicalFreeMemorySize", mxbean.getFreeMemorySize()); 
-		resp.addContent("physicalUsedMemorySize", mxbean.getTotalMemorySize()-mxbean.getFreeMemorySize()); 
-		resp.addContent("osName", System.getProperty("os.name"));  
-		resp.addContent("timezone", System.getProperty("user.timezone"));  
-		resp.addContent("availableProcessors", mxbean.getAvailableProcessors()); 
-		resp.addContent("cpuLoad", mxbean.getCpuLoad());   
-		resp.addContent("committedVirtualMemorySize", mxbean.getCommittedVirtualMemorySize()); 
-		resp.addContent("systemLoadAverage", mxbean.getSystemLoadAverage());    
-		resp.addContent("freeSwapSpaceSize", mxbean.getFreeSwapSpaceSize());   
-		resp.addContent("processCpuTime", mxbean.getProcessCpuTime());     
-		resp.addContent("processCpuLoad", mxbean.getProcessCpuLoad());     
+		resp.addContent("physicalTotalMemorySize", mxbean.getTotalMemorySize());
+		resp.addContent("physicalFreeMemorySize", mxbean.getFreeMemorySize());
+		resp.addContent("physicalUsedMemorySize", mxbean.getTotalMemorySize() - mxbean.getFreeMemorySize());
+		resp.addContent("osName", System.getProperty("os.name"));
+		resp.addContent("timezone", System.getProperty("user.timezone"));
+		resp.addContent("availableProcessors", mxbean.getAvailableProcessors());
+		resp.addContent("cpuLoad", mxbean.getCpuLoad());
+		resp.addContent("committedVirtualMemorySize", mxbean.getCommittedVirtualMemorySize());
+		resp.addContent("systemLoadAverage", mxbean.getSystemLoadAverage());
+		resp.addContent("freeSwapSpaceSize", mxbean.getFreeSwapSpaceSize());
+		resp.addContent("processCpuTime", mxbean.getProcessCpuTime());
+		resp.addContent("processCpuLoad", mxbean.getProcessCpuLoad());
+		resp.addContent("activeRequestCount", RequestMonitorHelper.activeReqs().size());
+		if (programeVersionLookupService != null) {
+			ProgrameVersionLookupService.VersionInfo versionInfo = programeVersionLookupService.version();
+			resp.addContent("versionInfo", versionInfo);
+		}
 		try {
-			resp.addContent("hostAddress", InetAddress.getLocalHost().getHostAddress());  
-			resp.addContent("hostName", InetAddress.getLocalHost().getHostName());  
+			resp.addContent("hostAddress", InetAddress.getLocalHost().getHostAddress());
+			resp.addContent("hostName", InetAddress.getLocalHost().getHostName());
 			resp.addContent("mac", MacAddressUtil.getMACAddress(InetAddress.getLocalHost()));
-		} catch (Exception e) { 
-			 
-		}   
-		
-		
-		
+		} catch (Exception e) {
+
+		}
+
 		return resp;
 	}
 

@@ -7,11 +7,13 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import lombok.Data;
+import tech.codingless.core.gateway.data.MyMemoryAnalysisFlag;
 import tech.codingless.core.gateway.util.StackTraceUtil;
 
 public class RequestMonitorHelper {
 
 	private static ConcurrentHashMap<String, RequestAnalysis> CACHE = new ConcurrentHashMap<>();
+	private static ConcurrentHashMap<MyMemoryAnalysisFlag, Long> FLAGS = new ConcurrentHashMap<>();
 
 	private static int MAX_NORMALS_SIZE=20;
 	private static int MAX_ERRORS_SIZE=20;
@@ -114,6 +116,21 @@ public class RequestMonitorHelper {
 		}
 
 		
+	}
+
+	public static void append(MyMemoryAnalysisFlag myMemoryAnalysisFlag) { 
+		FLAGS.put(myMemoryAnalysisFlag, System.currentTimeMillis());
+	}
+
+	public static void clear(MyMemoryAnalysisFlag myMemoryAnalysisFlag) { 
+		if(myMemoryAnalysisFlag==null) {
+			return ;
+		}
+		FLAGS.remove(myMemoryAnalysisFlag);
+	}
+	
+	public static ConcurrentHashMap<MyMemoryAnalysisFlag, Long> activeReqs() { 
+		return FLAGS;
 	}
 
 }

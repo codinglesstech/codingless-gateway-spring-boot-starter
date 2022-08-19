@@ -10,4 +10,8 @@ public class BaseController {
 		resp.setRequestId(SessionUtil.RID.get());
 		return resp.success();
 	}
+	
+	protected GatewayResponse resp(String tag) { 
+		return this.resp().setContentTag(tag);
+	}
 }

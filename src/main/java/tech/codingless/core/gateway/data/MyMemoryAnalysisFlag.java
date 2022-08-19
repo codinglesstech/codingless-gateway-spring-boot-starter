@@ -12,10 +12,25 @@ public class MyMemoryAnalysisFlag {
 		this.reqId = reqId;
 	}
 	
+	private String urlParam;
+	private String reqBody;
 	private String reqId;
 	private String scene;
 	private long t;
 	
+	public String getReqBody() {
+		return reqBody;
+	}
+	
+	public String getUrlParam() {
+		return urlParam;
+	}
+	public void setReqBody(String reqBody) {
+		this.reqBody = reqBody;
+	}
+	public void setUrlParam(String urlParam) {
+		this.urlParam = urlParam;
+	}
 	public String getReqId() {
 		return reqId;
 	}
