@@ -9,6 +9,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.BooleanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,6 +31,7 @@ import tech.codingless.core.gateway.data.MyMemoryAnalysisFlag;
 import tech.codingless.core.gateway.helper.AccessKeyHelper;
 import tech.codingless.core.gateway.helper.AccessKeyHelper.AccessKey;
 import tech.codingless.core.gateway.helper.RequestMonitorHelper;
+import tech.codingless.core.gateway.service.AuthService;
 import tech.codingless.core.gateway.util.DateUtil;
 import tech.codingless.core.gateway.util.SHAUtil;
 import tech.codingless.core.gateway.util.SessionUtil;
@@ -50,6 +52,9 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 	private static final ThreadLocal<Boolean> DISABLE_RESPONSE_LOG = new ThreadLocal<>();
 	private static final ThreadLocal<String> REQUEST_BODY = new ThreadLocal<String>();
 
+	@Autowired(required = false)
+	private AuthService authService;
+	
 	@Override
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
 		AsyncHandlerInterceptor.super.postHandle(request, response, handler, modelAndView);
@@ -107,6 +112,22 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 					request.getParameterNames().asIterator().forEachRemaining(paramName -> {
 						singParam.put(paramName, request.getParameter(paramName));
 					});
+					
+					if(authService!=null) {
+						AuthService.SignAuthRequest authRequest = new AuthService.SignAuthRequest();
+						authRequest.setIp(request.getHeader(X_REAL_IP));
+						authRequest.setUri(request.getRequestURI());
+						authRequest.setSign(accessSign);
+						authRequest.setSignKey(accessKeyStr);
+						authRequest.setSignTimestamp(accessTimeStamp);
+						authRequest.setSignData(SignUtil.toSignSrc(singParam, accessTimeStamp));
+						AuthService.SignAuthResponse authResponse =  authService.signAuth(authRequest);
+						if(!authResponse.isAllowed()) {
+							notAuthResponse(request, response, handlerMethod);
+							return false; 
+						} 
+					}
+					
 					boolean verifySuccess = SHAUtil.verifySign(accessKey.getSecret(), SignUtil.toSignSrc(singParam, accessTimeStamp), accessSign);
 					if (!verifySuccess) {
 						notAuthResponse(request, response, handlerMethod);
@@ -125,6 +146,25 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 					BodyReaderHttpServletRequestWrapper wrapper = (BodyReaderHttpServletRequestWrapper) request;
 					String requestBody = wrapper.getRequestBody();
 					REQUEST_BODY.set(requestBody);
+					
+					
+					if(authService!=null) {
+						AuthService.SignAuthRequest authRequest = new AuthService.SignAuthRequest();
+						authRequest.setIp(request.getHeader(X_REAL_IP));
+						authRequest.setUri(request.getRequestURI());
+						authRequest.setSign(accessSign);
+						authRequest.setSignKey(accessKeyStr);
+						authRequest.setSignTimestamp(accessTimeStamp);
+						authRequest.setSignData(requestBody + "&" + accessTimeStamp);
+						AuthService.SignAuthResponse authResponse =  authService.signAuth(authRequest);
+						if(!authResponse.isAllowed()) {
+							notAuthResponse(request, response, handlerMethod);
+							return false; 
+						} 
+					}
+					
+					
+					
 					boolean verifySuccess = SHAUtil.verifySign(accessKey.getSecret(), requestBody + "&" + accessTimeStamp, accessSign);
 					if (!verifySuccess) {
 						notAuthResponse(request, response, handlerMethod);
