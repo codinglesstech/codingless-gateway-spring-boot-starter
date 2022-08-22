@@ -18,7 +18,7 @@ import java.lang.annotation.RetentionPolicy;
  *
  */
 @Retention(RetentionPolicy.RUNTIME)
-public @interface MyAccessKeyAuth { 
+public @interface MySignAuth { 
 	public static ThreadLocal<String> CURRENT_COMPANY_ID = new ThreadLocal<String>();
 	public static ThreadLocal<String> ACCESS_KEY = new ThreadLocal<String>();
 	

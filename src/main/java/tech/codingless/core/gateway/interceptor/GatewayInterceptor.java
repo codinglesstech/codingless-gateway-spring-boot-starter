@@ -24,9 +24,9 @@ import com.alibaba.fastjson2.JSONObject;
 
 import lombok.extern.slf4j.Slf4j;
 import tech.codingless.core.gateway.annotation.GrantModuleCondition;
-import tech.codingless.core.gateway.annotation.MyAccessKeyAuth;
-import tech.codingless.core.gateway.annotation.MyAuth;
 import tech.codingless.core.gateway.annotation.MyBiz;
+import tech.codingless.core.gateway.annotation.MySignAuth;
+import tech.codingless.core.gateway.annotation.MyTokenAuth;
 import tech.codingless.core.gateway.data.MyMemoryAnalysisFlag;
 import tech.codingless.core.gateway.helper.AccessKeyHelper;
 import tech.codingless.core.gateway.helper.AccessKeyHelper.AccessKey;
@@ -80,13 +80,12 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 
 			REQUEST_BODY.remove();
 			// 检查认证
-			MyAccessKeyAuth myAccessKeyAuth = handlerMethod.getMethodAnnotation(MyAccessKeyAuth.class);
-			if (myAccessKeyAuth != null) {
+			MySignAuth mySignAuth = handlerMethod.getMethodAnnotation(MySignAuth.class);
+			if (mySignAuth != null) {
 				String accessKeyStr = request.getHeader(ACCESS_KEY);
 				String accessTimeStamp = request.getHeader(ACCESS_TIMESTAMP);
 				String accessSign = request.getHeader(ACCESS_SIGN);
-				if (StringUtil.hasEmpty(accessKeyStr, accessTimeStamp, accessSign)) {
-
+				if (StringUtil.hasEmpty(accessKeyStr, accessTimeStamp, accessSign)) { 
 					notAuthResponse(request, response, handlerMethod);
 					return false;
 				}
@@ -101,7 +100,7 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 					notAuthResponse(request, response, handlerMethod);
 					return false;
 				}
-				if (myAccessKeyAuth.requiredWriteAble() && BooleanUtils.isFalse(accessKey.isWriteAble(moduleName))) {
+				if (mySignAuth.requiredWriteAble() && BooleanUtils.isFalse(accessKey.isWriteAble(moduleName))) {
 					notAuthResponse(request, response, handlerMethod);
 					return false;
 				}
@@ -135,8 +134,8 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 					}
 
 					setRequestLog(moduleName, request, response);
-					MyAccessKeyAuth.CURRENT_COMPANY_ID.set(accessKey.getCompany());
-					MyAccessKeyAuth.ACCESS_KEY.set(accessKey.getKey());
+					MySignAuth.CURRENT_COMPANY_ID.set(accessKey.getCompany());
+					MySignAuth.ACCESS_KEY.set(accessKey.getKey());
 					SessionUtil.CURRENT_COMPANY_ID.set(accessKey.getCompany());
 					SessionUtil.CURRENT_USER_ID.set(accessKey.getKey());
 					return AsyncHandlerInterceptor.super.preHandle(request, response, handler);
@@ -172,8 +171,8 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 					}
 
 					setRequestLog(moduleName, request, response);
-					MyAccessKeyAuth.CURRENT_COMPANY_ID.set(accessKey.getCompany());
-					MyAccessKeyAuth.ACCESS_KEY.set(accessKey.getKey());
+					MySignAuth.CURRENT_COMPANY_ID.set(accessKey.getCompany());
+					MySignAuth.ACCESS_KEY.set(accessKey.getKey());
 					SessionUtil.CURRENT_COMPANY_ID.set(accessKey.getCompany());
 					SessionUtil.CURRENT_USER_ID.set(accessKey.getKey());
 					return AsyncHandlerInterceptor.super.preHandle(wrapper, response, handler);
@@ -194,9 +193,9 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 	private void notAuthResponse(HttpServletRequest request, HttpServletResponse response, HandlerMethod handlerMethod) throws IOException {
 		try {
 			
-			response.setHeader(MyAuth.UNAUTHORIZED_MSG, "1");
-			response.sendError(MyAuth.UNAUTHORIZED_CODE); 
-			SessionUtil.CURRENT_RESPONSE.set(MyAuth.UNAUTHORIZED_MSG);
+			response.setHeader(MyTokenAuth.UNAUTHORIZED_MSG, "1");
+			response.sendError(MyTokenAuth.UNAUTHORIZED_CODE); 
+			SessionUtil.CURRENT_RESPONSE.set(MyTokenAuth.UNAUTHORIZED_MSG);
 			appendLog(request, response, handlerMethod, null);
 			
 		}catch(Throwable e) {
@@ -219,8 +218,8 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 		req.put("ip", request.getHeader(X_REAL_IP));
 		req.put("t", System.currentTimeMillis());
 		req.put("method", request.getMethod());
-		req.put("companyId", MyAccessKeyAuth.CURRENT_COMPANY_ID.get());
-		req.put("access_key", MyAccessKeyAuth.ACCESS_KEY.get());
+		req.put("companyId", MySignAuth.CURRENT_COMPANY_ID.get());
+		req.put("access_key", MySignAuth.ACCESS_KEY.get());
 		req.put("cost", cost);
 		req.put("uri", uri);
 		req.put("url", request.getRequestURL().toString());
@@ -256,8 +255,8 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 	private void clearSession() { 
 		RequestMonitorHelper.clear(flag.get());
 		flag.remove();
-		MyAccessKeyAuth.CURRENT_COMPANY_ID.remove();
-		MyAccessKeyAuth.ACCESS_KEY.remove();
+		MySignAuth.CURRENT_COMPANY_ID.remove();
+		MySignAuth.ACCESS_KEY.remove();
 		REQUEST_BODY.remove();
 		SessionUtil.CURRENT_COMPANY_ID.remove();
 		SessionUtil.CURRENT_USER_ID.remove();

@@ -15,7 +15,7 @@ import java.lang.annotation.RetentionPolicy;
  * @version  2021年10月22日
  */
 @Retention(RetentionPolicy.RUNTIME)
-public @interface MyAuth {
+public @interface MyTokenAuth {
 	public static final String AUTH_TOKEN="Auth-Token";
 	public static final int UNAUTHORIZED_CODE=401;
 	public static final String UNAUTHORIZED_MSG="Unauthorized";
