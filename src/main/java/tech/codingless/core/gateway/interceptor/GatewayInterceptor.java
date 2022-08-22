@@ -54,7 +54,7 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 
 	@Autowired(required = false)
 	private AuthService authService;
-	
+
 	@Override
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
 		AsyncHandlerInterceptor.super.postHandle(request, response, handler, modelAndView);
@@ -79,18 +79,55 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 			// SessionUtil.RID.set(requestId);
 
 			REQUEST_BODY.remove();
-			// 检查认证
+			// 签名认证
 			MySignAuth mySignAuth = handlerMethod.getMethodAnnotation(MySignAuth.class);
 			if (mySignAuth != null) {
 				String accessKeyStr = request.getHeader(ACCESS_KEY);
 				String accessTimeStamp = request.getHeader(ACCESS_TIMESTAMP);
 				String accessSign = request.getHeader(ACCESS_SIGN);
-				if (StringUtil.hasEmpty(accessKeyStr, accessTimeStamp, accessSign)) { 
+				if (StringUtil.hasEmpty(accessKeyStr, accessTimeStamp, accessSign)) {
 					notAuthResponse(request, response, handlerMethod);
 					return false;
 				}
-				AccessKey accessKey = AccessKeyHelper.get(accessKeyStr.trim());
+
+
 				String moduleName = GrantModuleCondition.findModuleNameByResourcePkg(handlerMethod.getBean().getClass());
+				String signData = null;
+				if ("GET".equalsIgnoreCase(request.getMethod())) {
+					TreeMap<String, String> singParam = new TreeMap<>();
+					request.getParameterNames().asIterator().forEachRemaining(paramName -> {
+						singParam.put(paramName, request.getParameter(paramName));
+					});
+					signData = SignUtil.toSignSrc(singParam, accessTimeStamp);
+				} else if ("application/json".equalsIgnoreCase(request.getContentType()) && request instanceof BodyReaderHttpServletRequestWrapper) {
+					BodyReaderHttpServletRequestWrapper wrapper = (BodyReaderHttpServletRequestWrapper) request;
+					String requestBody = wrapper.getRequestBody();
+					REQUEST_BODY.set(requestBody);
+					signData = requestBody + "&" + accessTimeStamp;
+				}
+				
+				if (authService != null) {
+					AuthService.SignAuthRequest authRequest = new AuthService.SignAuthRequest();
+					authRequest.setIp(request.getHeader(X_REAL_IP));
+					authRequest.setUri(request.getRequestURI());
+					authRequest.setSign(accessSign);
+					authRequest.setSignKey(accessKeyStr);
+					authRequest.setSignTimestamp(accessTimeStamp);
+					authRequest.setSignData(signData);
+					AuthService.SignAuthResponse authResponse = authService.signAuth(authRequest);
+					if (!authResponse.isAllowed()) {
+						notAuthResponse(request, response, handlerMethod);
+						return false;
+					}
+					setRequestLog(moduleName, request, response);
+					MySignAuth.CURRENT_COMPANY_ID.set(authResponse.getCompanyId());
+					MySignAuth.ACCESS_KEY.set(authResponse.getSignKey());
+					SessionUtil.CURRENT_COMPANY_ID.set(authResponse.getCompanyId());
+					SessionUtil.CURRENT_USER_ID.set(authResponse.getSignKey());
+					return AsyncHandlerInterceptor.super.preHandle(request, response, handler);
+				} 
+				 
+				AccessKey accessKey = AccessKeyHelper.get(accessKeyStr.trim());
 				if (StringUtil.isEmpty(moduleName)) {
 					notAuthResponse(request, response, handlerMethod);
 					return false;
@@ -103,83 +140,20 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 				if (mySignAuth.requiredWriteAble() && BooleanUtils.isFalse(accessKey.isWriteAble(moduleName))) {
 					notAuthResponse(request, response, handlerMethod);
 					return false;
-				}
-
-				if ("GET".equalsIgnoreCase(request.getMethod())) {
-
-					TreeMap<String, String> singParam = new TreeMap<>();
-					request.getParameterNames().asIterator().forEachRemaining(paramName -> {
-						singParam.put(paramName, request.getParameter(paramName));
-					});
-					
-					if(authService!=null) {
-						AuthService.SignAuthRequest authRequest = new AuthService.SignAuthRequest();
-						authRequest.setIp(request.getHeader(X_REAL_IP));
-						authRequest.setUri(request.getRequestURI());
-						authRequest.setSign(accessSign);
-						authRequest.setSignKey(accessKeyStr);
-						authRequest.setSignTimestamp(accessTimeStamp);
-						authRequest.setSignData(SignUtil.toSignSrc(singParam, accessTimeStamp));
-						AuthService.SignAuthResponse authResponse =  authService.signAuth(authRequest);
-						if(!authResponse.isAllowed()) {
-							notAuthResponse(request, response, handlerMethod);
-							return false; 
-						} 
-					}
-					
-					boolean verifySuccess = SHAUtil.verifySign(accessKey.getSecret(), SignUtil.toSignSrc(singParam, accessTimeStamp), accessSign);
-					if (!verifySuccess) {
-						notAuthResponse(request, response, handlerMethod);
-						return false;
-					}
-
-					setRequestLog(moduleName, request, response);
-					MySignAuth.CURRENT_COMPANY_ID.set(accessKey.getCompany());
-					MySignAuth.ACCESS_KEY.set(accessKey.getKey());
-					SessionUtil.CURRENT_COMPANY_ID.set(accessKey.getCompany());
-					SessionUtil.CURRENT_USER_ID.set(accessKey.getKey());
-					return AsyncHandlerInterceptor.super.preHandle(request, response, handler);
-
-				} else if ("application/json".equalsIgnoreCase(request.getContentType()) && request instanceof BodyReaderHttpServletRequestWrapper) {
-
-					BodyReaderHttpServletRequestWrapper wrapper = (BodyReaderHttpServletRequestWrapper) request;
-					String requestBody = wrapper.getRequestBody();
-					REQUEST_BODY.set(requestBody);
-					
-					
-					if(authService!=null) {
-						AuthService.SignAuthRequest authRequest = new AuthService.SignAuthRequest();
-						authRequest.setIp(request.getHeader(X_REAL_IP));
-						authRequest.setUri(request.getRequestURI());
-						authRequest.setSign(accessSign);
-						authRequest.setSignKey(accessKeyStr);
-						authRequest.setSignTimestamp(accessTimeStamp);
-						authRequest.setSignData(requestBody + "&" + accessTimeStamp);
-						AuthService.SignAuthResponse authResponse =  authService.signAuth(authRequest);
-						if(!authResponse.isAllowed()) {
-							notAuthResponse(request, response, handlerMethod);
-							return false; 
-						} 
-					}
-					
-					
-					
-					boolean verifySuccess = SHAUtil.verifySign(accessKey.getSecret(), requestBody + "&" + accessTimeStamp, accessSign);
-					if (!verifySuccess) {
-						notAuthResponse(request, response, handlerMethod);
-						return false;
-					}
-
-					setRequestLog(moduleName, request, response);
-					MySignAuth.CURRENT_COMPANY_ID.set(accessKey.getCompany());
-					MySignAuth.ACCESS_KEY.set(accessKey.getKey());
-					SessionUtil.CURRENT_COMPANY_ID.set(accessKey.getCompany());
-					SessionUtil.CURRENT_USER_ID.set(accessKey.getKey());
-					return AsyncHandlerInterceptor.super.preHandle(wrapper, response, handler);
-				}
-				return false;
-			}
-
+				} 
+				boolean signVerify = SHAUtil.verifySign(accessKey.getSecret(), signData, accessSign);
+				if(!signVerify) {
+					notAuthResponse(request, response, handlerMethod);
+					return false;
+				} 
+				setRequestLog(moduleName, request, response);
+				MySignAuth.CURRENT_COMPANY_ID.set(accessKey.getCompany());
+				MySignAuth.ACCESS_KEY.set(accessKey.getKey());
+				SessionUtil.CURRENT_COMPANY_ID.set(accessKey.getCompany());
+				SessionUtil.CURRENT_USER_ID.set(accessKey.getKey());
+				return AsyncHandlerInterceptor.super.preHandle(request, response, handler);
+				 
+			} 
 			setRequestLog(DEFAULT_MODULE, request, response);
 			return AsyncHandlerInterceptor.super.preHandle(request, response, handler);
 
@@ -192,27 +166,27 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 
 	private void notAuthResponse(HttpServletRequest request, HttpServletResponse response, HandlerMethod handlerMethod) throws IOException {
 		try {
-			
+
 			response.setHeader(MyTokenAuth.UNAUTHORIZED_MSG, "1");
-			response.sendError(MyTokenAuth.UNAUTHORIZED_CODE); 
+			response.sendError(MyTokenAuth.UNAUTHORIZED_CODE);
 			SessionUtil.CURRENT_RESPONSE.set(MyTokenAuth.UNAUTHORIZED_MSG);
 			appendLog(request, response, handlerMethod, null);
-			
-		}catch(Throwable e) {
-			
-		}finally {
+
+		} catch (Throwable e) {
+
+		} finally {
 			clearSession();
 		}
 	}
 
 	private void appendLog(HttpServletRequest request, HttpServletResponse response, Object handlerMethod, Exception ex) throws IOException {
-		if(BooleanUtils.isTrue(DISABLE_LOG.get())) {
+		if (BooleanUtils.isTrue(DISABLE_LOG.get())) {
 			return;
 		}
 		// 记请求日志
 		String uri = getUri(request, handlerMethod);
 
-		String urlParam = request.getParameterMap().isEmpty()?null:JSON.toJSONString(request.getParameterMap());
+		String urlParam = request.getParameterMap().isEmpty() ? null : JSON.toJSONString(request.getParameterMap());
 		long cost = System.currentTimeMillis() - t.get();
 		JSONObject req = new JSONObject();
 		req.put("ip", request.getHeader(X_REAL_IP));
@@ -240,19 +214,19 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 	}
 
 	private void setRequestLog(String moduleName, HttpServletRequest request, HttpServletResponse response) {
-		String requestId = DateUtil.formatYYYYMMDD(new Date()) + "-REQ-" + moduleName.replace("/", "").toUpperCase() + "-" + StringUtil.genGUID()+"-"+StringUtil.genShortGUID().toLowerCase();
+		String requestId = DateUtil.formatYYYYMMDD(new Date()) + "-REQ-" + moduleName.replace("/", "").toUpperCase() + "-" + StringUtil.genGUID() + "-" + StringUtil.genShortGUID().toLowerCase();
 		response.addHeader("Request-Id", requestId);
 		SessionUtil.RID.set(requestId);
 		MyMemoryAnalysisFlag maf = new MyMemoryAnalysisFlag("REQ:" + request.getRequestURL().toString(), requestId);
 		maf.setReqBody(REQUEST_BODY.get());
-		if(!request.getParameterMap().isEmpty()) {
-			maf.setUrlParam(JSON.toJSONString(request.getParameterMap())); 
+		if (!request.getParameterMap().isEmpty()) {
+			maf.setUrlParam(JSON.toJSONString(request.getParameterMap()));
 		}
 		flag.set(maf);
 		RequestMonitorHelper.append(maf);
 	}
 
-	private void clearSession() { 
+	private void clearSession() {
 		RequestMonitorHelper.clear(flag.get());
 		flag.remove();
 		MySignAuth.CURRENT_COMPANY_ID.remove();
