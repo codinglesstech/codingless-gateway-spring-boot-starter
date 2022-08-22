@@ -34,6 +34,7 @@ public interface AuthService {
 	public static class TokenAuthResponse { 
 		private String companyId;
 		private String userName;
+		private String userId;
 		private boolean allowed;
 		private boolean expired;
 	}

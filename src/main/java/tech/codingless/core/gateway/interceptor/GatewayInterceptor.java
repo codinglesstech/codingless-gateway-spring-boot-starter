@@ -45,6 +45,7 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 	private static final String ACCESS_SIGN = "Access-Sign";
 	private static final String X_REAL_IP = "X-Real-IP";
 	private static final String DEFAULT_MODULE = "00000";
+	private static final String ACCESS_TOKEN = "Access-Token";
 
 	private static final ThreadLocal<MyMemoryAnalysisFlag> flag = new ThreadLocal<MyMemoryAnalysisFlag>();
 	private static final ThreadLocal<Long> t = new ThreadLocal<>();
@@ -73,15 +74,15 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 			if (myBiz != null) {
 				DISABLE_LOG.set(myBiz.disableRequestLog());
 				DISABLE_RESPONSE_LOG.set(myBiz.disableResponseLog());
-			}
-			// String requestId =StringUtil.genShortGUID() +"-"+ StringUtil.genGUID();
-			// response.addHeader("Request-Id", requestId);
-			// SessionUtil.RID.set(requestId);
+			} 
 
+			String moduleName = GrantModuleCondition.findModuleNameByResourcePkg(handlerMethod.getBean().getClass());
 			REQUEST_BODY.remove();
-			// 签名认证
-			MySignAuth mySignAuth = handlerMethod.getMethodAnnotation(MySignAuth.class);
-			if (mySignAuth != null) {
+			if (handlerMethod.getMethodAnnotation(MySignAuth.class) != null) {
+				/**
+				 * 签名认证
+				 */
+				MySignAuth mySignAuth = handlerMethod.getMethodAnnotation(MySignAuth.class);
 				String accessKeyStr = request.getHeader(ACCESS_KEY);
 				String accessTimeStamp = request.getHeader(ACCESS_TIMESTAMP);
 				String accessSign = request.getHeader(ACCESS_SIGN);
@@ -90,8 +91,6 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 					return false;
 				}
 
-
-				String moduleName = GrantModuleCondition.findModuleNameByResourcePkg(handlerMethod.getBean().getClass());
 				String signData = null;
 				if ("GET".equalsIgnoreCase(request.getMethod())) {
 					TreeMap<String, String> singParam = new TreeMap<>();
@@ -105,7 +104,7 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 					REQUEST_BODY.set(requestBody);
 					signData = requestBody + "&" + accessTimeStamp;
 				}
-				
+
 				if (authService != null) {
 					AuthService.SignAuthRequest authRequest = new AuthService.SignAuthRequest();
 					authRequest.setIp(request.getHeader(X_REAL_IP));
@@ -125,8 +124,8 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 					SessionUtil.CURRENT_COMPANY_ID.set(authResponse.getCompanyId());
 					SessionUtil.CURRENT_USER_ID.set(authResponse.getSignKey());
 					return AsyncHandlerInterceptor.super.preHandle(request, response, handler);
-				} 
-				 
+				}
+
 				AccessKey accessKey = AccessKeyHelper.get(accessKeyStr.trim());
 				if (StringUtil.isEmpty(moduleName)) {
 					notAuthResponse(request, response, handlerMethod);
@@ -140,27 +139,59 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 				if (mySignAuth.requiredWriteAble() && BooleanUtils.isFalse(accessKey.isWriteAble(moduleName))) {
 					notAuthResponse(request, response, handlerMethod);
 					return false;
-				} 
+				}
 				boolean signVerify = SHAUtil.verifySign(accessKey.getSecret(), signData, accessSign);
-				if(!signVerify) {
+				if (!signVerify) {
 					notAuthResponse(request, response, handlerMethod);
 					return false;
-				} 
+				}
 				setRequestLog(moduleName, request, response);
 				MySignAuth.CURRENT_COMPANY_ID.set(accessKey.getCompany());
 				MySignAuth.ACCESS_KEY.set(accessKey.getKey());
 				SessionUtil.CURRENT_COMPANY_ID.set(accessKey.getCompany());
 				SessionUtil.CURRENT_USER_ID.set(accessKey.getKey());
 				return AsyncHandlerInterceptor.super.preHandle(request, response, handler);
-				 
-			} 
-			setRequestLog(DEFAULT_MODULE, request, response);
-			return AsyncHandlerInterceptor.super.preHandle(request, response, handler);
 
+			} else if (handlerMethod.getMethodAnnotation(MyTokenAuth.class) != null) {
+				/**
+				 * Token 认证
+				 */
+
+				String token = request.getHeader(ACCESS_TOKEN);
+				if (StringUtil.isEmpty(token)) {
+					notAuthResponse(request, response, handlerMethod);
+					return false;
+				}
+				if (authService != null) {
+					AuthService.TokenAuthRequest authRequest = new AuthService.TokenAuthRequest();
+					authRequest.setIp(request.getHeader(X_REAL_IP));
+					authRequest.setUri(request.getRequestURI());
+					authRequest.setToken(token);
+					AuthService.TokenAuthResponse authResponse = authService.tokenAuth(authRequest);
+					if (!authResponse.isAllowed()) {
+						notAuthResponse(request, response, handlerMethod);
+						return false;
+					}
+					setRequestLog(moduleName, request, response);  
+					SessionUtil.CURRENT_COMPANY_ID.set(authResponse.getCompanyId());
+					SessionUtil.CURRENT_USER_ID.set(authResponse.getUserId());
+					SessionUtil.CURRENT_USER_NAME.set(authResponse.getUserName());
+					return AsyncHandlerInterceptor.super.preHandle(request, response, handler);
+				} 
+				notAuthResponse(request, response, handlerMethod);
+				return false;
+			} else {
+				/**
+				 * 无认证
+				 */
+				setRequestLog(DEFAULT_MODULE, request, response);
+				return AsyncHandlerInterceptor.super.preHandle(request, response, handler);
+			} 
 		} catch (Throwable e) {
 			log.error("error", e);
 		} finally {
 		}
+
 		return false;
 	}
 
@@ -235,6 +266,7 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 		SessionUtil.CURRENT_COMPANY_ID.remove();
 		SessionUtil.CURRENT_USER_ID.remove();
 		DISABLE_LOG.remove();
+		SessionUtil.clean();
 	}
 
 	@Override
