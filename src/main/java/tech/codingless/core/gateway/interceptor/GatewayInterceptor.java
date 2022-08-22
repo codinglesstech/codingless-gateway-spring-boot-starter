@@ -157,8 +157,9 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 				 * Token 认证
 				 */
 
+				MyTokenAuth myTokenAuth = handlerMethod.getMethodAnnotation(MyTokenAuth.class);
 				String token = request.getHeader(ACCESS_TOKEN);
-				if (StringUtil.isEmpty(token)) {
+				if (myTokenAuth.required()&&StringUtil.isEmpty(token)) {
 					notAuthResponse(request, response, handlerMethod);
 					return false;
 				}
@@ -168,7 +169,7 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 					authRequest.setUri(request.getRequestURI());
 					authRequest.setToken(token);
 					AuthService.TokenAuthResponse authResponse = authService.tokenAuth(authRequest);
-					if (!authResponse.isAllowed()) {
+					if (myTokenAuth.required()&&!authResponse.isAllowed()) {
 						notAuthResponse(request, response, handlerMethod);
 						return false;
 					}
@@ -178,8 +179,11 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 					SessionUtil.CURRENT_USER_NAME.set(authResponse.getUserName());
 					return AsyncHandlerInterceptor.super.preHandle(request, response, handler);
 				} 
-				notAuthResponse(request, response, handlerMethod);
-				return false;
+				if(myTokenAuth.required()) { 
+					notAuthResponse(request, response, handlerMethod);
+					return false;
+				} 
+				return AsyncHandlerInterceptor.super.preHandle(request, response, handler);
 			} else {
 				/**
 				 * 无认证
