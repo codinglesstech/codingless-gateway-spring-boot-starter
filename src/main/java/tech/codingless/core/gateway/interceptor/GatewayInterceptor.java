@@ -248,6 +248,9 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 	}
 
 	private void setRequestLog(String moduleName, HttpServletRequest request, HttpServletResponse response) {
+		if(moduleName==null) {
+			moduleName="00000";
+		}
 		String requestId = DateUtil.formatYYYYMMDD(new Date()) + "-REQ-" + moduleName.replace("/", "").toUpperCase() + "-" + StringUtil.genGUID() + "-" + StringUtil.genShortGUID().toLowerCase();
 		response.addHeader("Request-Id", requestId);
 		SessionUtil.RID.set(requestId);
