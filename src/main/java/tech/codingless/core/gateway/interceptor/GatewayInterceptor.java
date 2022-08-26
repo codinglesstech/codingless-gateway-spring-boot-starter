@@ -158,17 +158,9 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 				 */
 
 				MyTokenAuth myTokenAuth = handlerMethod.getMethodAnnotation(MyTokenAuth.class);
-				String token = request.getHeader(ACCESS_TOKEN);
-				if (myTokenAuth.required()&&StringUtil.isEmpty(token)) {
-					notAuthResponse(request, response, handlerMethod);
-					return false;
-				}
-				if (authService != null) {
-					AuthService.TokenAuthRequest authRequest = new AuthService.TokenAuthRequest();
-					authRequest.setIp(request.getHeader(X_REAL_IP));
-					authRequest.setUri(request.getRequestURI());
-					authRequest.setToken(token);
-					AuthService.TokenAuthResponse authResponse = authService.tokenAuth(authRequest);
+			
+				if (authService != null) { 
+					AuthService.TokenAuthResponse authResponse = authService.tokenAuth(request);
 					if (myTokenAuth.required()&&!authResponse.isAllowed()) {
 						notAuthResponse(request, response, handlerMethod);
 						return false;
@@ -179,6 +171,13 @@ public class GatewayInterceptor implements AsyncHandlerInterceptor {
 					SessionUtil.CURRENT_USER_NAME.set(authResponse.getUserName());
 					return AsyncHandlerInterceptor.super.preHandle(request, response, handler);
 				} 
+				
+				String token = request.getHeader(ACCESS_TOKEN);
+				if (myTokenAuth.required()&&StringUtil.isEmpty(token)) {
+					notAuthResponse(request, response, handlerMethod);
+					return false;
+				}
+				
 				if(myTokenAuth.required()) { 
 					notAuthResponse(request, response, handlerMethod);
 					return false;
