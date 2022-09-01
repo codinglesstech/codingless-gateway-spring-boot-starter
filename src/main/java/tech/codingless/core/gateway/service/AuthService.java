@@ -1,6 +1,5 @@
 package tech.codingless.core.gateway.service;
-
-import javax.servlet.http.HttpServletRequest;
+ 
 
 import lombok.Data;
 
@@ -42,7 +41,7 @@ public interface AuthService {
 	}
 	
 
-	TokenAuthResponse tokenAuth(HttpServletRequest request);
+	TokenAuthResponse tokenAuth(TokenAuthRequest request);
 	
 	
 
