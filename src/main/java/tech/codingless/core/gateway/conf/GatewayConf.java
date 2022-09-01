@@ -16,7 +16,7 @@ public class GatewayConf {
 		return catewayInterceptor;
 	}
 
-	@Bean
+	//@Bean
 	public GatewayStatController initGatewayStatController() {
 		return new GatewayStatController();
 	}
