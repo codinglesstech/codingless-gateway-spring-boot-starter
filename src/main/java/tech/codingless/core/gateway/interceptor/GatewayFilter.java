@@ -9,7 +9,6 @@ import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
-import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
 import org.springframework.stereotype.Component;
@@ -43,7 +42,6 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 		log.info("head:{}",JSON.toJSONString(exchange.getRequest().getHeaders())); 
 	 
 		exchange.getResponse().getHeaders().add("gateway", "codingless");
-	 
 	  
 		
 		ServerHttpResponseDecorator responseDecorator = processResponse(exchange.getResponse(), exchange.getResponse().bufferFactory());
@@ -57,15 +55,23 @@ public class GatewayFilter implements GlobalFilter, Ordered {
             public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
                 if (body instanceof Flux) {
                     Flux<? extends DataBuffer> flux = (Flux<? extends DataBuffer>) body;
+                     
+                    
                     return super.writeWith(flux.map(buffer -> { 
+                    	 
                     	CharBuffer charBuffer = StandardCharsets.UTF_8.decode(buffer.asByteBuffer());
-                        DataBufferUtils.release(buffer);
+                        //DataBufferUtils.release(buffer);
                         String old = charBuffer.toString();
+                        System.out.println(old);
                         JSONObject json = JSON.parseObject(old); 
                         json.put("modifyFromGateway", true); 
+ 
                         return bufferFactory.wrap(json.toString().getBytes(StandardCharsets.UTF_8));
                     }));
+
                 }
+                
+
                 return super.writeWith(body);
             }
         };
