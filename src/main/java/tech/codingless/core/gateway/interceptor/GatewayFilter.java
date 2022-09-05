@@ -1,5 +1,6 @@
 package tech.codingless.core.gateway.interceptor;
 
+import java.net.URLEncoder;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -95,23 +96,28 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 				headers.remove(AUTHED_DEPTID);
 				headers.remove(AUTHED_DEPTNAME);
 				headers.remove(AUTHED_ISADMIN);
-				if(StringUtil.isNotEmpty(authInfo.getUserId())) {
-					headers.put(AUTHED_UID, List.of(authInfo.getUserId()));
-				}
-				if(StringUtil.isNotEmpty(authInfo.getUserName())) {
-					headers.put(AUTHED_USERNAME, List.of(authInfo.getUserName()));
-				}
-				if(StringUtil.isNotEmpty(authInfo.getCompanyId())) {
-					headers.put(AUTHED_COMPANYID, List.of(authInfo.getCompanyId()));
-				}
-				if(StringUtil.isNotEmpty(authInfo.getDeptId())) {
-					headers.put(AUTHED_DEPTID, List.of(authInfo.getDeptId()));
-				}
-				if(StringUtil.isNotEmpty(authInfo.getDeptName())) {
-					headers.put(AUTHED_DEPTNAME, List.of(authInfo.getDeptName()));
-				}
-				if(StringUtil.isNotEmpty(authInfo.getIsAdmin())) {
-					headers.put(AUTHED_ISADMIN, List.of(authInfo.getIsAdmin()));
+				try {  
+					if(StringUtil.isNotEmpty(authInfo.getUserId())) {
+						headers.put(AUTHED_UID, List.of(authInfo.getUserId()));
+					}
+					if(StringUtil.isNotEmpty(authInfo.getUserName())) {  
+						headers.put(AUTHED_USERNAME, List.of(URLEncoder.encode(authInfo.getUserName(), "utf-8")));
+						 
+					}
+					if(StringUtil.isNotEmpty(authInfo.getCompanyId())) {
+						headers.put(AUTHED_COMPANYID, List.of(authInfo.getCompanyId()));
+					}
+					if(StringUtil.isNotEmpty(authInfo.getDeptId())) {
+						headers.put(AUTHED_DEPTID, List.of(authInfo.getDeptId()));
+					}
+					if(StringUtil.isNotEmpty(authInfo.getDeptName())) {
+						headers.put(AUTHED_DEPTNAME, List.of(URLEncoder.encode(authInfo.getDeptName(), "utf-8")));
+					}
+					if(StringUtil.isNotEmpty(authInfo.getIsAdmin())) {
+						headers.put(AUTHED_ISADMIN, List.of(authInfo.getIsAdmin()));
+					}
+				}catch(Exception e) {
+					
 				}
 				return headers;
 			}
