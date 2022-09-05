@@ -44,7 +44,7 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 
 	@Data
 	private static class AuthInfo {
-		String userId;
+		String userId="";
 		String companyId;
 		String userName;
 		String deptId;
@@ -92,12 +92,24 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 				headers.remove(AUTHED_DEPTID);
 				headers.remove(AUTHED_DEPTNAME);
 				headers.remove(AUTHED_ISADMIN);
-				headers.put(AUTHED_UID, List.of(authInfo.getUserId()));
-				headers.put(AUTHED_USERNAME, List.of(authInfo.getUserName()));
-				headers.put(AUTHED_COMPANYID, List.of(authInfo.getCompanyId()));
-				headers.put(AUTHED_DEPTID, List.of(authInfo.getDeptId()));
-				headers.put(AUTHED_DEPTNAME, List.of(authInfo.getDeptName()));
-				headers.put(AUTHED_ISADMIN, List.of(authInfo.getIsAdmin()));
+				if(StringUtil.isNotEmpty(authInfo.getUserId())) {
+					headers.put(AUTHED_UID, List.of(authInfo.getUserId()));
+				}
+				if(StringUtil.isNotEmpty(authInfo.getUserName())) {
+					headers.put(AUTHED_USERNAME, List.of(authInfo.getUserName()));
+				}
+				if(StringUtil.isNotEmpty(authInfo.getCompanyId())) {
+					headers.put(AUTHED_COMPANYID, List.of(authInfo.getCompanyId()));
+				}
+				if(StringUtil.isNotEmpty(authInfo.getDeptId())) {
+					headers.put(AUTHED_DEPTID, List.of(authInfo.getDeptId()));
+				}
+				if(StringUtil.isNotEmpty(authInfo.getDeptName())) {
+					headers.put(AUTHED_DEPTNAME, List.of(authInfo.getDeptName()));
+				}
+				if(StringUtil.isNotEmpty(authInfo.getIsAdmin())) {
+					headers.put(AUTHED_ISADMIN, List.of(authInfo.getIsAdmin()));
+				}
 				return headers;
 			}
 
