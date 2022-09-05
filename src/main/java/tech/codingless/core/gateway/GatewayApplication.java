@@ -9,19 +9,18 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 import com.alibaba.nacos.spring.context.annotation.config.NacosPropertySource;
 
-
 @EnableDiscoveryClient
 @NacosPropertySource(dataId = "nacos_attr1", autoRefreshed = true)
-@EnableScheduling 
+@EnableScheduling
 @SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })
 @ComponentScan(basePackages = { "tech.codingless.core.gateway" })
 public class GatewayApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(GatewayApplication.class, args); 
-		//GracefulShutdownCallback
+		SpringApplication.run(GatewayApplication.class, args);
+		// GracefulShutdownCallback
 	}
-	
- 
+
+
 
 }
