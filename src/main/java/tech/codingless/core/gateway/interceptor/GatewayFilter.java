@@ -10,6 +10,7 @@ import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
 import org.springframework.http.server.reactive.ServerHttpResponse;
@@ -30,12 +31,12 @@ import tech.codingless.core.gateway.util.StringUtil;
 @Slf4j
 @Component
 public class GatewayFilter implements GlobalFilter, Ordered {
-	private String AUTHED_UID = "Authed-Uid";
-	private String AUTHED_USERNAME = "Authed-UserName";
-	private String AUTHED_COMPANYID = "Authed-CompanyId";
-	private String AUTHED_DEPTID = "Authed-DeptId";
-	private String AUTHED_DEPTNAME = "Authed-DeptName";
-	private String AUTHED_ISADMIN = "Authed-IsAdmin";
+	private String AUTHED_UID = "authed-uid";
+	private String AUTHED_USERNAME = "authed-username";
+	private String AUTHED_COMPANYID = "authed-companyid";
+	private String AUTHED_DEPTID = "authed-deptid";
+	private String AUTHED_DEPTNAME = "authed-deptname";
+	private String AUTHED_ISADMIN = "authed-isadmin";
 
 	@Override
 	public int getOrder() {
@@ -54,8 +55,8 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 
 	@Override
 	public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-		String consoleToken = exchange.getRequest().getHeaders().getFirst("Console-Token");
-		String tmpUid = exchange.getRequest().getHeaders().getFirst("Console-Tmp-Uid");
+		String consoleToken = exchange.getRequest().getHeaders().getFirst("console-token");
+		String tmpUid = exchange.getRequest().getHeaders().getFirst("console-tmp-uid");
 
 		AuthInfo authInfo = new AuthInfo();
 		if (StringUtil.isNotEmpty(consoleToken)) {
@@ -133,8 +134,10 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 						StringBuilder oldBody = new StringBuilder();
 						dataList.forEach(dataItem -> {
 							CharBuffer charBuffer = StandardCharsets.UTF_8.decode(dataItem.asByteBuffer());
+							DataBufferUtils.release(dataItem);
 							oldBody.append(charBuffer.toString());
 						});
+						System.out.println("oldBody:"+oldBody.toString());
 						JSONObject json = JSON.parseObject(oldBody.toString()); 
 						return bufferFactory.wrap(json.toString().getBytes(StandardCharsets.UTF_8));
 					}));
