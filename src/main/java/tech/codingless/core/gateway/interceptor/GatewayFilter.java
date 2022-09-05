@@ -73,6 +73,7 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 
 			} else {
 				List<String> vals = RedisUtil.hmget(authKey, "ADMIN", "USERID", "URI:", "COMPANYID", "USERNAME", "POSITION", "EMPLOYEE_NUMBER", "MOBILE", "DEPT_ID", "DEPT_NAME", "DEPT_CODE");
+				log.info("vals:{}",JSON.toJSONString(vals));
 				authInfo.setUserId(vals.get(1));
 				authInfo.setCompanyId(vals.get(3));
 				authInfo.setIsAdmin(vals.get(0));
