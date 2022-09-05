@@ -58,6 +58,7 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 		String consoleToken = exchange.getRequest().getHeaders().getFirst("console-token");
 		String tmpUid = exchange.getRequest().getHeaders().getFirst("console-tmp-uid");
 
+		log.info("Token:{}",consoleToken);
 		AuthInfo authInfo = new AuthInfo();
 		if (StringUtil.isNotEmpty(consoleToken)) {
 			String authKey = "CONSOLE:TOKEN:AUTH:" + consoleToken;
