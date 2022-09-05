@@ -23,61 +23,54 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @Component
-public class GatewayFilter implements GlobalFilter, Ordered { 
+public class GatewayFilter implements GlobalFilter, Ordered {
 	@Override
-	public int getOrder() { 
-		return -2; //这个值要小于-1，才能修改响应，不然不管用
-	} 
+	public int getOrder() {
+		return -2; // 这个值要小于-1，才能修改响应，不然不管用
+	}
+
 	@Override
 	public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
 		String consoleToken = exchange.getRequest().getHeaders().getFirst("Console-Token");
 		String consoleTmpUid = exchange.getRequest().getHeaders().getFirst("Console-Tmp-Uid");
-		log.info("执行了filter"); 
+		log.info("执行了filter");
 		/**
-		if(StringUtil.isEmpty(consoleToken)) {
-			exchange.getResponse().setRawStatusCode(505);
-			return exchange.getResponse().setComplete();
-		}
-		*/
-		log.info("head:{}",JSON.toJSONString(exchange.getRequest().getHeaders())); 
-	 
+		 * if(StringUtil.isEmpty(consoleToken)) {
+		 * exchange.getResponse().setRawStatusCode(505); return
+		 * exchange.getResponse().setComplete(); }
+		 */
+		log.info("head:{}", JSON.toJSONString(exchange.getRequest().getHeaders()));
+
 		exchange.getResponse().getHeaders().add("gateway", "codingless");
-	  
-		
+
 		ServerHttpResponseDecorator responseDecorator = processResponse(exchange.getResponse(), exchange.getResponse().bufferFactory());
 		return chain.filter(exchange.mutate().response(responseDecorator).build());
 	}
-	
-    private ServerHttpResponseDecorator processResponse(ServerHttpResponse response, DataBufferFactory bufferFactory) {
-        return new ServerHttpResponseDecorator(response) {
- 
-            @Override
-            public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
-                if (body instanceof Flux) {
-                    Flux<? extends DataBuffer> flux = (Flux<? extends DataBuffer>) body;
-                     
-                    
-                    return super.writeWith(flux.map(buffer -> { 
-                    	 
-                    	CharBuffer charBuffer = StandardCharsets.UTF_8.decode(buffer.asByteBuffer());
-                        //DataBufferUtils.release(buffer);
-                        String old = charBuffer.toString();
-                        System.out.println(old);
-                        JSONObject json = JSON.parseObject(old); 
-                        json.put("modifyFromGateway", true); 
- 
-                        return bufferFactory.wrap(json.toString().getBytes(StandardCharsets.UTF_8));
-                    }));
 
-                }
-                
+	private ServerHttpResponseDecorator processResponse(ServerHttpResponse response, DataBufferFactory bufferFactory) {
+		return new ServerHttpResponseDecorator(response) {
 
-                return super.writeWith(body);
-            }
-        };
-    }
- 
-	
-	
+			@Override
+			public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
+				if (body instanceof Flux) {
+					Flux<? extends DataBuffer> flux = (Flux<? extends DataBuffer>) body;
+
+					return super.writeWith(flux.buffer().map(dataList -> {
+						StringBuilder oldBody = new StringBuilder();
+						dataList.forEach(dataItem -> {
+							CharBuffer charBuffer = StandardCharsets.UTF_8.decode(dataItem.asByteBuffer());
+							oldBody.append(charBuffer.toString());
+						});
+						JSONObject json = JSON.parseObject(oldBody.toString());
+						json.put("modifyFromGateway", true);
+						return bufferFactory.wrap(json.toString().getBytes(StandardCharsets.UTF_8));
+					}));
+
+				}
+
+				return super.writeWith(body);
+			}
+		};
+	}
 
 }
