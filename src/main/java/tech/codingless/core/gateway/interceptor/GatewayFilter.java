@@ -139,7 +139,7 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 			@Override
 			public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
 
-				if (body instanceof Flux && MediaType.APPLICATION_JSON == response.getHeaders().getContentType()) {
+				if (body instanceof Flux) {
 					Flux<? extends DataBuffer> flux = (Flux<? extends DataBuffer>) body;
 
 					return super.writeWith(flux.buffer().map(dataList -> {
@@ -149,10 +149,22 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 							DataBufferUtils.release(dataItem);
 							oldBody.append(charBuffer.toString());
 						});
-						
-						log.info("response:{}",oldBody.toString()); 
-						JSONObject json = JSON.parseObject(oldBody.toString());
-						return bufferFactory.wrap(json.toString().getBytes(StandardCharsets.UTF_8));
+						boolean isJson = false;
+						if (MediaType.TEXT_HTML == response.getHeaders().getContentType() && oldBody.toString().startsWith("{")) {
+							response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+							isJson = true;
+						} else if (MediaType.APPLICATION_JSON == response.getHeaders().getContentType()) {
+							isJson = true;
+						}
+						log.info("response:{}", oldBody.toString());
+						if (isJson) {
+
+							JSONObject json = JSON.parseObject(oldBody.toString());
+							return bufferFactory.wrap(json.toString().getBytes(StandardCharsets.UTF_8));
+						} else {
+							return bufferFactory.wrap(oldBody.toString().getBytes(StandardCharsets.UTF_8));
+						}
+
 					}));
 
 				}
