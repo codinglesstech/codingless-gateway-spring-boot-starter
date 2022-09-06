@@ -127,7 +127,8 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 		exchange.getResponse().getHeaders().add("gateway", "codingless");
 
 		ServerHttpResponseDecorator responseDecorator = processResponse(exchange.getResponse(), exchange.getResponse().bufferFactory());
-		return chain.filter(exchange.mutate().request(requestDecorator).response(responseDecorator).build());
+		return chain.filter(exchange.mutate().request(requestDecorator).build());
+		//return chain.filter(exchange.mutate().request(requestDecorator).response(responseDecorator).build());
 	}
 
 	private ServerHttpResponseDecorator processResponse(ServerHttpResponse response, DataBufferFactory bufferFactory) {
