@@ -13,6 +13,7 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
@@ -46,7 +47,7 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 
 	@Data
 	private static class AuthInfo {
-		String userId="";
+		String userId = "";
 		String companyId;
 		String userName;
 		String deptId;
@@ -59,7 +60,7 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 		String consoleToken = exchange.getRequest().getHeaders().getFirst("console-token");
 		String tmpUid = exchange.getRequest().getHeaders().getFirst("console-tmp-uid");
 
-		log.info("Token:{}",consoleToken);
+		log.info("Token:{}", consoleToken);
 		AuthInfo authInfo = new AuthInfo();
 		if (StringUtil.isNotEmpty(consoleToken)) {
 			String authKey = "CONSOLE:TOKEN:AUTH:" + consoleToken;
@@ -74,7 +75,7 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 
 			} else {
 				List<String> vals = RedisUtil.hmget(authKey, "ADMIN", "USERID", "URI:", "COMPANYID", "USERNAME", "POSITION", "EMPLOYEE_NUMBER", "MOBILE", "DEPT_ID", "DEPT_NAME", "DEPT_CODE");
-				log.info("vals:{}",JSON.toJSONString(vals));
+				log.info("vals:{}", JSON.toJSONString(vals));
 				authInfo.setUserId(vals.get(1));
 				authInfo.setCompanyId(vals.get(3));
 				authInfo.setIsAdmin(vals.get(0));
@@ -96,28 +97,28 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 				headers.remove(AUTHED_DEPTID);
 				headers.remove(AUTHED_DEPTNAME);
 				headers.remove(AUTHED_ISADMIN);
-				try {  
-					if(StringUtil.isNotEmpty(authInfo.getUserId())) {
+				try {
+					if (StringUtil.isNotEmpty(authInfo.getUserId())) {
 						headers.put(AUTHED_UID, List.of(authInfo.getUserId()));
 					}
-					if(StringUtil.isNotEmpty(authInfo.getUserName())) {  
+					if (StringUtil.isNotEmpty(authInfo.getUserName())) {
 						headers.put(AUTHED_USERNAME, List.of(URLEncoder.encode(authInfo.getUserName(), "utf-8")));
-						 
+
 					}
-					if(StringUtil.isNotEmpty(authInfo.getCompanyId())) {
+					if (StringUtil.isNotEmpty(authInfo.getCompanyId())) {
 						headers.put(AUTHED_COMPANYID, List.of(authInfo.getCompanyId()));
 					}
-					if(StringUtil.isNotEmpty(authInfo.getDeptId())) {
+					if (StringUtil.isNotEmpty(authInfo.getDeptId())) {
 						headers.put(AUTHED_DEPTID, List.of(authInfo.getDeptId()));
 					}
-					if(StringUtil.isNotEmpty(authInfo.getDeptName())) {
+					if (StringUtil.isNotEmpty(authInfo.getDeptName())) {
 						headers.put(AUTHED_DEPTNAME, List.of(URLEncoder.encode(authInfo.getDeptName(), "utf-8")));
 					}
-					if(StringUtil.isNotEmpty(authInfo.getIsAdmin())) {
+					if (StringUtil.isNotEmpty(authInfo.getIsAdmin())) {
 						headers.put(AUTHED_ISADMIN, List.of(authInfo.getIsAdmin()));
 					}
-				}catch(Exception e) {
-					
+				} catch (Exception e) {
+
 				}
 				return headers;
 			}
@@ -127,8 +128,9 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 		exchange.getResponse().getHeaders().add("gateway", "codingless");
 
 		ServerHttpResponseDecorator responseDecorator = processResponse(exchange.getResponse(), exchange.getResponse().bufferFactory());
-		return chain.filter(exchange.mutate().request(requestDecorator).build());
-		//return chain.filter(exchange.mutate().request(requestDecorator).response(responseDecorator).build());
+		return chain.filter(exchange.mutate().request(requestDecorator).response(responseDecorator).build());
+		// return
+		// chain.filter(exchange.mutate().request(requestDecorator).response(responseDecorator).build());
 	}
 
 	private ServerHttpResponseDecorator processResponse(ServerHttpResponse response, DataBufferFactory bufferFactory) {
@@ -136,7 +138,8 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 
 			@Override
 			public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
-				if (body instanceof Flux) {
+
+				if (body instanceof Flux && MediaType.APPLICATION_JSON == response.getHeaders().getContentType()) {
 					Flux<? extends DataBuffer> flux = (Flux<? extends DataBuffer>) body;
 
 					return super.writeWith(flux.buffer().map(dataList -> {
@@ -146,8 +149,9 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 							DataBufferUtils.release(dataItem);
 							oldBody.append(charBuffer.toString());
 						});
-						System.out.println("oldBody:"+oldBody.toString());
-						JSONObject json = JSON.parseObject(oldBody.toString()); 
+						
+						log.info("response:{}",oldBody.toString()); 
+						JSONObject json = JSON.parseObject(oldBody.toString());
 						return bufferFactory.wrap(json.toString().getBytes(StandardCharsets.UTF_8));
 					}));
 
