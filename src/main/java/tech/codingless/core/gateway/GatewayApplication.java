@@ -33,7 +33,7 @@ public class GatewayApplication {
         corsConfiguration.addAllowedHeader("*");
         corsConfiguration.addAllowedMethod("*");
         corsConfiguration.addAllowedOrigin("*");
-        corsConfiguration.setAllowCredentials(true);
+        //corsConfiguration.setAllowCredentials(true);
         // 2、设置哪些路径需要跨域
         source.registerCorsConfiguration("/**",corsConfiguration);
 
