@@ -32,9 +32,9 @@ public class GatewayApplication {
         // 1、配置跨域
         corsConfiguration.addAllowedHeader("*");
         corsConfiguration.addAllowedMethod("*");
-        corsConfiguration.addAllowedOrigin("http://erp.selleroa.com");
-        corsConfiguration.addAllowedOrigin("http://10.10.10.92:8080");
-        corsConfiguration.addAllowedOrigin("http://localhost:8080");
+        corsConfiguration.addAllowedOrigin("*");
+        //corsConfiguration.addAllowedOrigin("http://10.10.10.92:8080");
+        //corsConfiguration.addAllowedOrigin("http://localhost:8080");
         //corsConfiguration.setAllowCredentials(true);
         // 2、设置哪些路径需要跨域
         source.registerCorsConfiguration("/**",corsConfiguration);

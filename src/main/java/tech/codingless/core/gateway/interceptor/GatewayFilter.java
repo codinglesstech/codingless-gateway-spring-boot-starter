@@ -142,7 +142,12 @@ public class GatewayFilter implements GlobalFilter, Ordered {
 				if (body instanceof Flux) {
 					Flux<? extends DataBuffer> flux = (Flux<? extends DataBuffer>) body;
 
+					response.getHeaders().setAccessControlAllowOrigin("*");
+					//response.getHeaders().remove("access-control-allow-origin");
+					
 					return super.writeWith(flux.buffer().map(dataList -> {
+						
+						   
 						StringBuilder oldBody = new StringBuilder();
 						dataList.forEach(dataItem -> {
 							CharBuffer charBuffer = StandardCharsets.UTF_8.decode(dataItem.asByteBuffer());
