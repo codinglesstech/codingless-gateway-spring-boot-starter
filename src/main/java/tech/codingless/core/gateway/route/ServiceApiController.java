@@ -35,12 +35,14 @@ public class ServiceApiController extends BaseController   {
 
 		param.setUri("http://"+param.getHost()+":"+param.getPort());
 		RouteDefinitionData.addService(param); 
+		RouteDefinitionData.persistence();
 		return resp().addContent("service", param);
 	}
 
 	@DeleteMapping("/{id}")
 	public GatewayResponse del(@PathVariable("id") String id) {
 		RouteDefinitionData.deleteService(id); 
+		RouteDefinitionData.persistence();
 		return resp().success();
 	}
 

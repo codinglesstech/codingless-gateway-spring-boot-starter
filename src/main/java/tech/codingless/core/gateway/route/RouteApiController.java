@@ -44,7 +44,14 @@ public class RouteApiController extends BaseController implements ApplicationEve
 
 	@PostMapping("/refresh")
 	public GatewayResponse refresh() {
+		RouteDefinitionData.reload();
 		applicationEventPublisher.publishEvent(new RefreshRoutesEvent(true));
+		return resp().addContent("routes", RouteDefinitionData.routes.values());
+	}
+
+	@PostMapping("/persistence")
+	public GatewayResponse persistence() {
+		RouteDefinitionData.persistence();
 		return resp().addContent("routes", RouteDefinitionData.routes.values());
 	}
 
@@ -74,6 +81,7 @@ public class RouteApiController extends BaseController implements ApplicationEve
 		route.setUri(URI.create(param.getUri()));
 		RouteDefinitionData.routes.put(param.getId(), route);
 		applicationEventPublisher.publishEvent(new RefreshRoutesEvent(true));
+		RouteDefinitionData.persistence();
 		return resp().addContent("route", route);
 	}
 
@@ -82,6 +90,7 @@ public class RouteApiController extends BaseController implements ApplicationEve
 		RouteDefinitionData.routes.remove(id);
 		routeDefinitionWriter.delete(Mono.just(id));
 		applicationEventPublisher.publishEvent(new RefreshRoutesEvent(true));
+		RouteDefinitionData.persistence();
 		return resp().success();
 	}
 
