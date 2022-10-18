@@ -11,10 +11,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
-import com.alibaba.nacos.spring.context.annotation.config.NacosPropertySource;
-
 @EnableDiscoveryClient
-@NacosPropertySource(dataId = "nacos_attr1", autoRefreshed = true)
+//@NacosPropertySource(dataId = "nacos_attr1", autoRefreshed = true)
 @EnableScheduling
 @SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })
 @ComponentScan(basePackages = { "tech.codingless.core.gateway" })
