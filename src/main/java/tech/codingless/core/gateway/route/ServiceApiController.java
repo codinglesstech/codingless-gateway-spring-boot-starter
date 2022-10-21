@@ -36,13 +36,13 @@ public class ServiceApiController extends BaseController {
 		return resp().addContent("service", param);
 	}
 
-	@PostMapping("/{id}")
+	@PostMapping("/disable/{id}")
 	public GatewayResponse disable(@PathVariable("id") String id) {
 		RouteDefinitionData.disableService(id);
 		return resp().addContent("id", id);
 	}
 	
-	@PostMapping("/{id}")
+	@PostMapping("/enable/{id}")
 	public GatewayResponse enable(@PathVariable("id") String id) {
 		RouteDefinitionData.enableService(id);
 		return resp().addContent("id", id);
