@@ -155,10 +155,15 @@ public class RouteDefinitionData {
 		for (Map.Entry<String, List<Response<ServiceInstance>>> entry : DISABLED_SERVICE.entrySet()) {
 			entry.getValue().forEach(service -> {
 				if (service.getServer().getInstanceId().equalsIgnoreCase(id)) {
-					if(!backends.containsKey(entry.getKey())) {
-						backends.put(entry.getKey(), new ArrayList<>());
-					}
-					backends.get(entry.getKey()).add(service);
+					  
+					DefaultServiceInstance instance = new DefaultServiceInstance();
+					instance.setHost(service.getServer().getHost());
+					instance.setPort(service.getServer().getPort());
+					instance.setServiceId(service.getServer().getServiceId());
+					instance.setInstanceId(service.getServer().getInstanceId()); 
+					instance.setUri(service.getServer().getUri());
+					addService(entry.getKey(), instance);
+					 
 				} 
 			});
 		} 
