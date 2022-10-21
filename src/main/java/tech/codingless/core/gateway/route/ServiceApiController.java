@@ -42,7 +42,7 @@ public class ServiceApiController extends BaseController {
 		return resp().addContent("id", id);
 	}
 	
-	@PostMapping("/enable/{id}")
+	@PostMapping("/enable/{id}") 
 	public GatewayResponse enable(@PathVariable("id") String id) {
 		RouteDefinitionData.enableService(id);
 		return resp().addContent("id", id);
