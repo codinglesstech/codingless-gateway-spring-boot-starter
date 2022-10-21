@@ -162,7 +162,7 @@ public class RouteDefinitionData {
 					instance.setServiceId(service.getServer().getServiceId());
 					instance.setInstanceId(service.getServer().getInstanceId()); 
 					instance.setUri(service.getServer().getUri());
-					addService(entry.getKey(), instance);
+					addService(entry.getKey(), instance); 
 					 
 				} 
 			});
