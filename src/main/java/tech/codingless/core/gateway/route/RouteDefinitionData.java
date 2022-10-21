@@ -33,6 +33,7 @@ import tech.codingless.core.gateway.util.IntegerUtil;
 public class RouteDefinitionData {
 	public final static Map<String, RouteDefinition> routes = synchronizedMap(new LinkedHashMap<String, RouteDefinition>());
 	public final static ConcurrentHashMap<String, List<Response<ServiceInstance>>> backends = new ConcurrentHashMap<>();
+	public final static ConcurrentHashMap<String, List<Response<ServiceInstance>>> DISABLED_SERVICE = new ConcurrentHashMap<>();
 
 	@Data
 	public static class RouteDefinitionParam {
@@ -130,6 +131,43 @@ public class RouteDefinitionData {
 		});
 	}
 
+	public static void disableService(String id) {
+		
+		//remove service instance from ready list to disableList
+		for (Map.Entry<String, List<Response<ServiceInstance>>> entry : backends.entrySet()) {
+			entry.getValue().forEach(service -> {
+				if (service.getServer().getInstanceId().equalsIgnoreCase(id)) {
+					if(!DISABLED_SERVICE.containsKey(entry.getKey())) {
+						DISABLED_SERVICE.put(entry.getKey(), new ArrayList<>());
+					}
+					DISABLED_SERVICE.get(entry.getKey()).add(service);
+				} 
+			});
+		}
+
+		backends.values().forEach(list -> {  
+			list.removeIf(item -> item.getServer().getInstanceId().equals(id));
+		});
+	}
+
+	
+	public static void enableService(String id) {
+		for (Map.Entry<String, List<Response<ServiceInstance>>> entry : DISABLED_SERVICE.entrySet()) {
+			entry.getValue().forEach(service -> {
+				if (service.getServer().getInstanceId().equalsIgnoreCase(id)) {
+					if(!backends.containsKey(entry.getKey())) {
+						backends.put(entry.getKey(), new ArrayList<>());
+					}
+					backends.get(entry.getKey()).add(service);
+				} 
+			});
+		} 
+		DISABLED_SERVICE.values().forEach(list -> {  
+			list.removeIf(item -> item.getServer().getInstanceId().equals(id));
+		});
+		
+	}
+	
 	/**
 	 * 持久化到本地配置文件
 	 */
@@ -155,6 +193,21 @@ public class RouteDefinitionData {
 			});
 		}
 
+		
+		enr = DISABLED_SERVICE.keys();
+		while (enr.hasMoreElements()) {
+			String matchPath = enr.nextElement();
+			List<Response<ServiceInstance>> list = DISABLED_SERVICE.get(matchPath);
+			list.forEach(service -> {
+				JSONObject json = new JSONObject();
+				json.put("type", "service");
+				json.put("matchPath", matchPath);
+				json.put("data", service);
+				configLines.add(json.toJSONString());
+			});
+		}
+		
+		
 		FileOutputStream conf = null;
 		try {
 			File file = new File(System.getProperty("user.home") + File.separator + "gateway.conf");
@@ -207,4 +260,7 @@ public class RouteDefinitionData {
 		}
 
 	}
+
+
+
 }
