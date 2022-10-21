@@ -151,7 +151,7 @@ public class RouteDefinitionData {
 	}
 
 	
-	public static void enableService(String id) {
+	public static void enableService(String id) { 
 		for (Map.Entry<String, List<Response<ServiceInstance>>> entry : DISABLED_SERVICE.entrySet()) {
 			entry.getValue().forEach(service -> {
 				if (service.getServer().getInstanceId().equalsIgnoreCase(id)) {
